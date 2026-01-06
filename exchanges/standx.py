@@ -425,17 +425,18 @@ class StandXAdapter(ExchangeAdapter):
         if not self.signing_key:
             raise ValueError("需要 Ed25519 签名密钥才能下单。请重新获取 JWT Token。")
 
-        # 构建订单请求体
+        # 构建订单请求体（严格按照官方文档格式）
+        # 参考: https://docs.standx.com/standx-api/perps-auth
         order_data = {
             "symbol": symbol,
             "side": side.value,
             "order_type": order_type.value,
             "qty": self.format_quantity(quantity, symbol),
-            "leverage": kwargs.get("leverage", 1),
             "time_in_force": kwargs.get("time_in_force", "gtc"),
             "reduce_only": kwargs.get("reduce_only", False),
         }
 
+        # 限价单需要价格
         if order_type == OrderType.LIMIT:
             if price is None:
                 raise ValueError("限价单必须指定价格")
