@@ -317,7 +317,9 @@ async function restoreSession() {
 function connectWebSocket() {
     if (!state.wallet.sessionId) return;
 
-    const wsUrl = `ws://${window.location.host}/ws/${state.wallet.sessionId}`;
+    // 根据页面协议自动选择 ws 或 wss
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws/${state.wallet.sessionId}`;
 
     try {
         state.ws = new WebSocket(wsUrl);
@@ -1011,7 +1013,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // API 配置按钮
     document.getElementById('configApiBtn').addEventListener('click', openApiConfigModal);
-    document.getElementById('getJwtTokenBtn').addEventListener('click', getJwtToken);
     document.getElementById('testApiBtn').addEventListener('click', testApiConnection);
     document.getElementById('saveApiBtn').addEventListener('click', saveApiConfig);
 
