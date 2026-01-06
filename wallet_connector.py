@@ -263,29 +263,36 @@ class WalletManager:
     ) -> bool:
         """
         验证签名并激活会话
-        
+
         Args:
             session_id: 会话 ID
             address: 钱包地址
             message: 消息
             signature: 签名
-            
+
         Returns:
             bool: 是否验证成功
         """
+        # 如果会话不存在，自动创建（解决服务器重启后会话丢失的问题）
         if session_id not in self.connectors:
-            return False
-        
+            connector = MetaMaskConnector()
+            self.connectors[session_id] = connector
+            self.active_sessions[session_id] = {
+                "connector_type": "metamask",
+                "connected_at": int(time.time()),
+                "address": None
+            }
+
         connector = self.connectors[session_id]
-        
+
         if isinstance(connector, MetaMaskConnector):
             verified = await connector.verify_signature(address, message, signature)
-            
+
             if verified:
                 self.active_sessions[session_id]["address"] = address
                 self.active_sessions[session_id]["verified"] = True
                 return True
-        
+
         return False
     
     def get_connector(self, session_id: str) -> Optional[WalletConnector]:
