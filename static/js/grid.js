@@ -1094,9 +1094,9 @@ async function getJwtToken() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                message: messageToSign,   // 发送原始 SIWE 消息
                 signature: signature,
-                signedData: signedData,  // 发送原始的 signedData JWT
-                expiresSeconds: 604800   // 7 天
+                expiresSeconds: 604800    // 7 天
             })
         });
 
