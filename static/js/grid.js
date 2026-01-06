@@ -1141,6 +1141,16 @@ async function getJwtToken() {
 
         console.log('签名完成:', signature);
 
+        // 验证签名 - 检查恢复的地址是否匹配
+        try {
+            const recoveredAddress = ethers.verifyMessage(messageToSign, signature);
+            console.log('签名验证 - 恢复的地址:', recoveredAddress);
+            console.log('签名验证 - 钱包地址:', walletAddress);
+            console.log('签名验证 - 地址匹配:', recoveredAddress.toLowerCase() === walletAddress.toLowerCase());
+        } catch (e) {
+            console.error('签名验证失败:', e);
+        }
+
         // Step 4: 调用 login 获取 JWT Token
         // 参考官方文档的请求格式（注意字段顺序）：
         // body: JSON.stringify({ signature, signedData, expiresSeconds })
