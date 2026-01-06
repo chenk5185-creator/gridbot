@@ -63,7 +63,9 @@ class GridCreateRequest(BaseModel):
 class ApiConfigRequest(BaseModel):
     """API 配置请求"""
     jwt_token: Optional[str] = Field(None, description="StandX JWT Token")
-    simulation_mode: bool = Field(default=True, description="是否使用模拟模式")
+    signing_key: Optional[str] = Field(None, description="Ed25519 私钥 (Base64)")
+    request_id: Optional[str] = Field(None, description="请求 ID (Base58 公钥)")
+    simulation_mode: bool = Field(default=False, description="是否使用模拟模式")
 
 
 class GridResponse(BaseModel):
@@ -429,6 +431,31 @@ async def get_positions(session_id: str = Depends(require_auth)):
 
 # ========== API 配置 ==========
 
+@app.get("/api/config/generate-keypair")
+async def generate_keypair():
+    """
+    生成 Ed25519 密钥对
+
+    返回用于 StandX API 请求签名的密钥对
+    前端需要保存私钥，并在登录时将公钥注册到 StandX
+
+    Returns:
+        private_key: Base64 编码的私钥（需保密）
+        public_key: Base58 编码的公钥（用作 request_id）
+    """
+    private_key, public_key, request_id = StandXAdapter.generate_keypair()
+
+    if not private_key:
+        raise HTTPException(status_code=500, detail="生成密钥对失败，请确保已安装 pynacl 和 base58")
+
+    return {
+        "success": True,
+        "private_key": private_key,
+        "public_key": public_key,
+        "request_id": request_id
+    }
+
+
 @app.post("/api/config/api")
 async def save_api_config(
     request: ApiConfigRequest,
@@ -437,7 +464,7 @@ async def save_api_config(
     """
     保存 API 配置
 
-    保存用户的 StandX API 配置（JWT Token 和模拟模式设置）
+    保存用户的 StandX API 配置（JWT Token、签名密钥）
     """
     global exchange_adapter, grid_engine
 
@@ -445,20 +472,24 @@ async def save_api_config(
     config_key = session_id or 'default'
     api_configs[config_key] = {
         "jwt_token": request.jwt_token,
+        "signing_key": request.signing_key,
+        "request_id": request.request_id,
         "simulation_mode": request.simulation_mode
     }
 
-    # 如果切换到真实模式且有 JWT Token，重新初始化适配器
+    # 真实模式需要 JWT Token 和签名密钥
     if not request.simulation_mode and request.jwt_token:
         try:
             # 关闭旧适配器
             if exchange_adapter:
                 await exchange_adapter.close()
 
-            # 创建新适配器（真实模式）
+            # 创建新适配器（真实模式，包含签名密钥）
             exchange_adapter = create_adapter('standx', {
                 'simulation': False,
-                'jwt_token': request.jwt_token
+                'jwt_token': request.jwt_token,
+                'signing_key': request.signing_key,
+                'request_id': request.request_id
             })
             await exchange_adapter.initialize()
 
@@ -499,16 +530,18 @@ async def test_api_connection(request: ApiConfigRequest):
     """
     测试 API 连接
 
-    使用提供的 JWT Token 测试与 StandX API 的连接
+    使用提供的 JWT Token 和签名密钥测试与 StandX API 的连接
     """
     if not request.jwt_token:
         raise HTTPException(status_code=400, detail="请提供 JWT Token")
 
     try:
-        # 创建临时适配器进行测试
+        # 创建临时适配器进行测试（包含签名密钥）
         test_adapter = create_adapter('standx', {
             'simulation': False,
-            'jwt_token': request.jwt_token
+            'jwt_token': request.jwt_token,
+            'signing_key': request.signing_key,
+            'request_id': request.request_id
         })
         await test_adapter.initialize()
 
@@ -525,10 +558,14 @@ async def test_api_connection(request: ApiConfigRequest):
                 dusd_balance = balance.total
                 break
 
+        # 检查是否有签名密钥
+        has_signing_key = bool(request.signing_key and request.request_id)
+
         return {
             "success": True,
             "balance": dusd_balance or 0,
-            "message": "API 连接成功"
+            "has_signing_key": has_signing_key,
+            "message": "API 连接成功" + ("（已配置签名密钥）" if has_signing_key else "（未配置签名密钥，无法下单）")
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"连接测试失败: {str(e)}")
