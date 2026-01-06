@@ -259,6 +259,14 @@
                         启动网格交易
                     </button>
                 </div>
+
+                <!-- 当前网格列表 -->
+                <div class="section card" id="gridListSection" style="margin-top: 20px;">
+                    <h3>我的网格</h3>
+                    <div class="grid-list" id="gridList">
+                        <div class="grid-empty">暂无网格</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -327,10 +335,7 @@
                 </div>
 
                 <div class="api-config-options">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="simulationMode" checked>
-                        <span>模拟模式（不进行真实交易，用于测试）</span>
-                    </label>
+                    <p class="live-mode-notice">⚡ 配置 JWT Token 后将启用真实交易</p>
                 </div>
 
                 <div class="api-test-result" id="apiTestResult" style="display: none;">

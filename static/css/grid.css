@@ -1141,3 +1141,122 @@ select.input {
     border: 1px solid var(--danger);
     color: var(--danger);
 }
+
+/* ========== 网格列表 ========== */
+.grid-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.grid-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--spacing-lg);
+}
+
+.grid-item {
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    border-left: 3px solid var(--primary);
+}
+
+.grid-item.stopped {
+    border-left-color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.grid-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.grid-symbol {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.grid-status {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: var(--primary);
+    color: white;
+}
+
+.grid-status.stopped {
+    background: var(--text-muted);
+}
+
+.grid-status.paused {
+    background: var(--warning);
+}
+
+.grid-item-info {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.grid-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.grid-info-row .profit {
+    color: var(--success);
+}
+
+.grid-info-row .loss {
+    color: var(--danger);
+}
+
+.grid-item-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-sm {
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: white;
+}
+
+.btn-warning:hover {
+    opacity: 0.9;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    opacity: 0.9;
+}
+
+/* ========== API 配置提示 ========== */
+.live-mode-notice {
+    color: var(--success);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.api-mode.not-configured {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
