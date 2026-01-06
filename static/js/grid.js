@@ -1093,14 +1093,16 @@ async function getJwtToken() {
         // Step 4: 调用 login 获取 JWT Token
         status.textContent = '⏳ 步骤 4/4: 获取 JWT Token...';
 
-        // 构建登录请求 - 同时发送 message 和 signedData
+        // 根据 StandX 官方文档构建登录请求
+        // https://docs.standx.com/standx-api/perps-auth
         const loginBody = {
-            message: messageToSign,    // SIWE 消息
-            signedData: signedData,    // prepare-signin 返回的 JWT
-            signature: signature,       // MetaMask 签名
-            expiresSeconds: 604800      // 7 天
+            signedData: signedData,    // prepare-signin 返回的 JWT (base64)
+            signature: signature,       // MetaMask 签名 (0x...)
+            expiresSeconds: 604800      // 7 天有效期
         };
-        console.log('login 请求体:', JSON.stringify(loginBody, null, 2));
+        console.log('login 请求体:', loginBody);
+        console.log('signedData 前20字符:', signedData.substring(0, 50));
+        console.log('signature:', signature);
 
         const loginResponse = await fetch(`${STANDX_API}/login?chain=${CHAIN}`, {
             method: 'POST',
