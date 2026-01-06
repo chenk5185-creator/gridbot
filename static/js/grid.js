@@ -1090,14 +1090,18 @@ async function getJwtToken() {
         // Step 4: 调用 login 获取 JWT Token
         status.textContent = '⏳ 步骤 4/4: 获取 JWT Token...';
 
+        // 构建登录请求
+        const loginBody = {
+            signedData: signedData,   // prepare-signin 返回的 JWT
+            signature: signature,      // MetaMask 签名
+            expiresSeconds: 604800     // 7 天
+        };
+        console.log('login 请求体:', loginBody);
+
         const loginResponse = await fetch(`${STANDX_API}/login?chain=${CHAIN}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: messageToSign,   // 发送原始 SIWE 消息
-                signature: signature,
-                expiresSeconds: 604800    // 7 天
-            })
+            body: JSON.stringify(loginBody)
         });
 
         if (!loginResponse.ok) {
