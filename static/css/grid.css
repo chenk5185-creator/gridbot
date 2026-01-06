@@ -1142,6 +1142,38 @@ select.input {
     color: var(--danger);
 }
 
+/* 签名密钥状态 */
+.signing-key-status {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+}
+
+.signing-key-status .key-status-pending {
+    color: var(--text-secondary);
+}
+
+.signing-key-status .key-status-ready {
+    color: var(--success);
+}
+
+.signing-key-info {
+    display: block;
+    margin-top: 4px;
+    color: var(--success);
+    font-size: 0.875rem;
+}
+
+.signing-key-warning {
+    display: block;
+    margin-top: 4px;
+    color: var(--warning);
+    font-size: 0.875rem;
+}
+
 /* ========== 网格列表 ========== */
 .grid-list {
     display: flex;

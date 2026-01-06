@@ -726,14 +726,21 @@ function openApiConfigModal() {
     const modal = document.getElementById('apiConfigModal');
     const jwtInput = document.getElementById('jwtTokenInput');
     const testResult = document.getElementById('apiTestResult');
+    const tokenStatus = document.getElementById('getTokenStatus');
 
     // 恢复已保存的配置
     if (state.apiConfig.jwtToken) {
         jwtInput.value = state.apiConfig.jwtToken;
     }
 
-    // 隐藏测试结果
+    // 隐藏测试结果和 token 状态
     testResult.style.display = 'none';
+    if (tokenStatus) {
+        tokenStatus.style.display = 'none';
+    }
+
+    // 更新签名密钥状态
+    updateSigningKeyStatus();
 
     modal.classList.add('active');
 }
@@ -817,14 +824,20 @@ async function saveApiConfig() {
         return;
     }
 
-    // 检查是否有签名密钥
-    if (!state.apiConfig.signingKey || !state.apiConfig.requestId) {
-        showToast('请先获取 JWT Token（会自动生成签名密钥）', 'warning');
-        return;
-    }
-
     saveBtn.classList.add('btn-loading');
     saveBtn.textContent = '保存中...';
+
+    // 如果没有签名密钥，自动生成
+    if (!state.apiConfig.signingKey || !state.apiConfig.requestId) {
+        saveBtn.textContent = '生成签名密钥...';
+        const keyGenerated = await ensureSigningKey();
+        if (!keyGenerated) {
+            showToast('生成签名密钥失败，请重试', 'error');
+            saveBtn.classList.remove('btn-loading');
+            saveBtn.textContent = '保存配置';
+            return;
+        }
+    }
 
     try {
         await apiRequest('/api/config/api', {
@@ -905,6 +918,53 @@ function restoreApiConfig() {
     state.apiConfig.simulationMode = false;
 
     updateApiStatusUI();
+}
+
+/**
+ * 更新签名密钥状态 UI
+ */
+function updateSigningKeyStatus() {
+    const statusEl = document.getElementById('signingKeyStatus');
+    if (!statusEl) return;
+
+    if (state.apiConfig.signingKey && state.apiConfig.requestId) {
+        statusEl.innerHTML = `
+            <span class="key-status-ready">🔑 签名密钥已就绪 (Request ID: ${state.apiConfig.requestId.slice(0, 8)}...)</span>
+        `;
+    } else {
+        statusEl.innerHTML = `
+            <span class="key-status-pending">⏳ 点击上方按钮获取 JWT Token 时会自动生成签名密钥</span>
+        `;
+    }
+}
+
+/**
+ * 生成签名密钥（如果不存在）
+ */
+async function ensureSigningKey() {
+    if (state.apiConfig.signingKey && state.apiConfig.requestId) {
+        return true;
+    }
+
+    try {
+        const keypairResponse = await apiRequest('/api/config/generate-keypair');
+        if (!keypairResponse.success) {
+            throw new Error('生成密钥对失败');
+        }
+
+        state.apiConfig.signingKey = keypairResponse.private_key;
+        state.apiConfig.requestId = keypairResponse.request_id;
+
+        console.log('自动生成 Ed25519 密钥对, requestId:', state.apiConfig.requestId);
+
+        // 更新 UI
+        updateSigningKeyStatus();
+
+        return true;
+    } catch (error) {
+        console.error('生成签名密钥失败:', error);
+        return false;
+    }
 }
 
 /**
@@ -1061,6 +1121,9 @@ async function getJwtToken() {
             ✅ JWT Token 获取成功！已自动填入下方输入框<br>
             🔑 已生成签名密钥 (Request ID: ${requestId.slice(0, 8)}...)
         `;
+
+        // 更新签名密钥状态 UI
+        updateSigningKeyStatus();
 
         showToast('JWT Token 和签名密钥获取成功！', 'success');
 

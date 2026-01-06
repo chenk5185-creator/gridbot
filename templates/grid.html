@@ -304,38 +304,35 @@
             </div>
             <div class="modal-body">
                 <div class="api-config-info">
-                    <p>配置 StandX API 后，您可以进行真实交易。不配置则使用模拟模式。</p>
+                    <p>配置 StandX API 后，您可以进行真实交易。</p>
                 </div>
 
                 <!-- 获取 Token 区域 -->
                 <div class="get-token-section">
                     <div class="get-token-header">
-                        <span>🔑 第一步：从 StandX 获取 JWT Token</span>
+                        <span>🔑 第一步：获取 JWT Token 和签名密钥</span>
                     </div>
-                    <div class="get-token-steps">
-                        <ol>
-                            <li>打开 <a href="https://standx.com" target="_blank" rel="noopener">StandX.com</a> 并用 MetaMask 登录</li>
-                            <li>打开浏览器开发者工具（F12）</li>
-                            <li>切换到 <strong>Application</strong> 标签</li>
-                            <li>在左侧找到 <strong>Local Storage → https://standx.com</strong></li>
-                            <li>找到 <code>bsc_0x你的钱包地址</code> 这个键</li>
-                            <li>展开后复制 <code>token</code> 字段的值（以 eyJ 开头）</li>
-                        </ol>
-                    </div>
-                    <a href="https://standx.com" target="_blank" rel="noopener" class="btn-secondary" style="width: 100%; text-align: center; display: block; text-decoration: none;">
-                        打开 StandX.com →
-                    </a>
+                    <p class="get-token-desc">点击下方按钮，使用 MetaMask 签名后自动获取 JWT Token 和生成签名密钥。</p>
+                    <button class="btn-primary" id="getJwtTokenBtn" style="width: 100%;" onclick="getJwtToken()">
+                        🦊 使用 MetaMask 获取 JWT Token
+                    </button>
+                    <div class="get-token-status" id="getTokenStatus" style="display: none;"></div>
                 </div>
 
                 <!-- Token 输入区域 -->
                 <div class="form-group" style="margin-top: 20px;">
                     <label>🔐 第二步：确认 JWT Token</label>
-                    <textarea class="input textarea" id="jwtTokenInput" placeholder="Token 将自动填入，或手动粘贴..."></textarea>
+                    <textarea class="input textarea" id="jwtTokenInput" placeholder="Token 将自动填入..."></textarea>
                     <span class="hint">JWT Token 有效期为 7 天，过期后需要重新获取</span>
                 </div>
 
+                <!-- 签名密钥状态 -->
+                <div class="signing-key-status" id="signingKeyStatus">
+                    <span class="key-status-pending">⏳ 点击上方按钮获取 JWT Token 时会自动生成签名密钥</span>
+                </div>
+
                 <div class="api-config-options">
-                    <p class="live-mode-notice">⚡ 配置 JWT Token 后将启用真实交易</p>
+                    <p class="live-mode-notice">⚡ 配置后将启用真实交易</p>
                 </div>
 
                 <div class="api-test-result" id="apiTestResult" style="display: none;">
