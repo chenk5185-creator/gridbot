@@ -1121,8 +1121,16 @@ async function getJwtToken() {
             }
         }
 
-        // 如果失败，显示详细错误
-        throw new Error(`登录失败: ${loginText}`);
+        // 自动获取失败，提示用户手动获取
+        status.className = 'get-token-status error';
+        status.innerHTML = `
+            ❌ 自动获取失败 (StandX API 问题)<br>
+            <small>请从 <a href="https://app.standx.com" target="_blank">StandX 网站</a> 手动复制 JWT Token</small><br>
+            <small>签名密钥已生成，可直接粘贴 Token 后保存配置</small>
+        `;
+        // 不抛出错误，让用户可以手动输入
+        console.error('自动获取 JWT Token 失败:', loginText);
+        console.log('签名密钥已生成，用户可手动输入 JWT Token');
 
     } catch (error) {
         console.error('错误:', error);
