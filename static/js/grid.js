@@ -1128,27 +1128,69 @@ async function getJwtToken() {
             throw new Error('未找到待签名消息');
         }
 
-        console.log('待签名消息:', messageToSign);
-
         // Step 3: 使用 ethers.js 签名 SIWE 消息
         // 完全按照官方文档：const signature = await wallet.signMessage(payload.message);
         status.textContent = '⏳ 步骤 3/4: 请在 MetaMask 中签名...';
+
+        // 详细调试：验证 SIWE 消息格式
+        console.log('=== SIWE 消息详细调试 ===');
+        console.log('消息长度:', messageToSign.length);
+        console.log('消息字节长度:', new TextEncoder().encode(messageToSign).length);
+        console.log('完整 SIWE 消息:');
+        console.log('---BEGIN SIWE MESSAGE---');
+        console.log(messageToSign);
+        console.log('---END SIWE MESSAGE---');
+
+        // 验证 SIWE 消息结构
+        const siweFields = ['URI:', 'Version:', 'Chain ID:', 'Nonce:', 'Issued At:'];
+        console.log('SIWE 字段检查:');
+        siweFields.forEach(field => {
+            const hasField = messageToSign.includes(field);
+            console.log(`  ${hasField ? '✅' : '❌'} ${field}`, hasField ? '存在' : '缺失');
+        });
+
+        // 检查消息行数
+        const lines = messageToSign.split('\n');
+        console.log('消息行数:', lines.length);
+        console.log('各行内容:');
+        lines.forEach((line, i) => console.log(`  行${i+1}: "${line}"`));
 
         // 使用 ethers.js v6 的 BrowserProvider 和 Signer
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const signature = await signer.signMessage(messageToSign);
 
-        console.log('签名完成:', signature);
+        console.log('=== 签名信息 ===');
+        console.log('原始签名:', signature);
+        console.log('签名长度:', signature.length, '(应为 132 字符: 0x + 64r + 64s + 2v)');
+
+        // 分析签名结构 (r, s, v)
+        if (signature.startsWith('0x') && signature.length === 132) {
+            const r = signature.slice(0, 66);
+            const s = '0x' + signature.slice(66, 130);
+            const v = parseInt(signature.slice(130, 132), 16);
+            console.log('签名 r:', r);
+            console.log('签名 s:', s);
+            console.log('签名 v:', v, '(应为 27 或 28)');
+        }
 
         // 验证签名 - 检查恢复的地址是否匹配
         try {
             const recoveredAddress = ethers.verifyMessage(messageToSign, signature);
             console.log('签名验证 - 恢复的地址:', recoveredAddress);
             console.log('签名验证 - 钱包地址:', walletAddress);
-            console.log('签名验证 - 地址匹配:', recoveredAddress.toLowerCase() === walletAddress.toLowerCase());
+            const isMatch = recoveredAddress.toLowerCase() === walletAddress.toLowerCase();
+            console.log('签名验证 - 地址匹配:', isMatch);
+
+            if (isMatch) {
+                console.log('✅ 本地签名验证通过！签名格式正确');
+            } else {
+                console.log('❌ 本地签名验证失败！地址不匹配');
+                throw new Error('签名验证失败：恢复的地址与钱包地址不匹配');
+            }
         } catch (e) {
-            console.error('签名验证失败:', e);
+            console.error('签名验证错误:', e);
+            // 继续尝试，因为 StandX 可能用不同的验证方式
         }
 
         // Step 4: 调用 login 获取 JWT Token
@@ -1156,45 +1198,70 @@ async function getJwtToken() {
         // body: JSON.stringify({ signature, signedData, expiresSeconds })
         status.textContent = '⏳ 步骤 4/4: 获取 JWT Token...';
 
-        const loginBody = {
-            signature: signature,       // MetaMask 签名 (0x...)
-            signedData: signedData,     // prepare-signin 返回的 JWT
-            expiresSeconds: 604800      // 7 天有效期
-        };
-        console.log('login 请求体:', JSON.stringify(loginBody, null, 2));
+        console.log('=== Login 请求准备 ===');
+        console.log('signedData 长度:', signedData.length);
+        console.log('signedData 前 50 字符:', signedData.slice(0, 50) + '...');
 
-        const loginResponse = await fetch(`${STANDX_API}/login?chain=${CHAIN}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(loginBody)
-        });
+        // 尝试发送请求，如果失败尝试不同的签名格式
+        let loginSuccess = false;
+        let lastError = null;
+        const signatureFormats = [
+            { name: '带 0x 前缀', sig: signature },
+            { name: '不带 0x 前缀', sig: signature.startsWith('0x') ? signature.slice(2) : signature }
+        ];
 
-        if (!loginResponse.ok) {
-            const errorText = await loginResponse.text();
-            console.error('login 失败:', errorText);
-            throw new Error(`login 失败: ${errorText}`);
+        for (const format of signatureFormats) {
+            if (loginSuccess) break;
+
+            console.log(`尝试签名格式: ${format.name}`);
+            console.log('签名:', format.sig.slice(0, 50) + '...');
+
+            const loginBody = {
+                signature: format.sig,
+                signedData: signedData,
+                expiresSeconds: 604800
+            };
+
+            try {
+                const loginResponse = await fetch(`${STANDX_API}/login?chain=${CHAIN}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(loginBody)
+                });
+
+                const responseText = await loginResponse.text();
+                console.log(`响应状态: ${loginResponse.status}`);
+                console.log(`响应内容: ${responseText}`);
+
+                if (loginResponse.ok) {
+                    const loginData = JSON.parse(responseText);
+                    if (loginData.token) {
+                        console.log('✅ Login 成功！使用格式:', format.name);
+                        const jwtToken = loginData.token;
+                        tokenInput.value = jwtToken;
+                        status.className = 'get-token-status success';
+                        status.innerHTML = `
+                            ✅ JWT Token 获取成功！已自动填入下方输入框<br>
+                            🔑 已生成签名密钥 (Request ID: ${requestId.slice(0, 8)}...)
+                        `;
+                        updateSigningKeyStatus();
+                        showToast('JWT Token 和签名密钥获取成功！', 'success');
+                        loginSuccess = true;
+                        return; // 成功，直接返回
+                    }
+                }
+
+                lastError = responseText;
+            } catch (e) {
+                console.error(`请求失败 (${format.name}):`, e);
+                lastError = e.message;
+            }
         }
 
-        const loginData = await loginResponse.json();
-        console.log('login 响应:', loginData);
-
-        const jwtToken = loginData.token;
-        if (!jwtToken) {
-            throw new Error('未获取到 token');
+        // 所有格式都失败了
+        if (!loginSuccess) {
+            throw new Error(`login 失败: ${lastError}`);
         }
-
-        // 成功！填入 Token
-        tokenInput.value = jwtToken;
-        status.className = 'get-token-status success';
-        status.innerHTML = `
-            ✅ JWT Token 获取成功！已自动填入下方输入框<br>
-            🔑 已生成签名密钥 (Request ID: ${requestId.slice(0, 8)}...)
-        `;
-
-        // 更新签名密钥状态 UI
-        updateSigningKeyStatus();
-
-        showToast('JWT Token 和签名密钥获取成功！', 'success');
 
     } catch (error) {
         console.error('获取 Token 错误:', error);
