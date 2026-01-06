@@ -259,13 +259,17 @@ class StandXAdapter(ExchangeAdapter):
         url = f"{self.BASE_URL}{endpoint}"
         headers = self._get_headers(need_auth, need_sign, data)
 
+        # 重要：签名时使用 separators=(',', ':') 序列化 JSON
+        # 发送请求时也必须使用相同的序列化方式，否则签名验证会失败
+        body_str = json.dumps(data, separators=(',', ':')) if data else None
+
         try:
             async with self.session.request(
                 method,
                 url,
                 headers=headers,
                 params=params,
-                json=data,
+                data=body_str,  # 使用手动序列化的字符串，而非 json=data
                 timeout=aiohttp.ClientTimeout(total=30)
             ) as response:
                 response_text = await response.text()
