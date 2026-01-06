@@ -1130,15 +1130,14 @@ async function getJwtToken() {
 
         console.log('待签名消息:', messageToSign);
 
-        // Step 3: 使用 MetaMask 签名 SIWE 消息
-        // 参考官方文档：const signature = await wallet.signMessage(payload.message);
-        // ethers.js 的 signMessage 等价于 MetaMask 的 personal_sign
+        // Step 3: 使用 ethers.js 签名 SIWE 消息
+        // 完全按照官方文档：const signature = await wallet.signMessage(payload.message);
         status.textContent = '⏳ 步骤 3/4: 请在 MetaMask 中签名...';
 
-        const signature = await window.ethereum.request({
-            method: 'personal_sign',
-            params: [messageToSign, walletAddress]
-        });
+        // 使用 ethers.js v6 的 BrowserProvider 和 Signer
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const signature = await signer.signMessage(messageToSign);
 
         console.log('签名完成:', signature);
 
