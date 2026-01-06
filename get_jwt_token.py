@@ -10,13 +10,15 @@ https://docs.standx.com/standx-api/perps-auth
     python get_jwt_token.py
 
 流程:
-    1. 调用 prepare-signin 获取待签名消息
-    2. 使用钱包签名消息
-    3. 调用 login 获取 JWT Token
+    1. 调用 prepare-signin 获取 signedData (JWT Token)
+    2. 解析 JWT 获取 payload.message (SIWE 消息)
+    3. 使用钱包签名 SIWE 消息
+    4. 调用 login 获取 JWT Token
 """
 
 import requests
 import json
+import base64
 from eth_account import Account
 from eth_account.messages import encode_defunct
 
@@ -24,6 +26,26 @@ from eth_account.messages import encode_defunct
 # StandX API 配置
 API_BASE = "https://api.standx.com/v1/offchain"
 CHAIN = "bsc"  # 或 "solana"
+
+
+def base64url_decode(data: str) -> bytes:
+    """解码 base64url（JWT 使用的编码格式）"""
+    # 替换 URL 安全字符为标准 base64 字符
+    data = data.replace('-', '+').replace('_', '/')
+    # 添加填充
+    padding = 4 - len(data) % 4
+    if padding != 4:
+        data += '=' * padding
+    return base64.b64decode(data)
+
+
+def parse_jwt(token: str) -> dict:
+    """解析 JWT Token，提取 payload"""
+    parts = token.split('.')
+    if len(parts) != 3:
+        raise ValueError(f"无效的 JWT 格式")
+    payload_bytes = base64url_decode(parts[1])
+    return json.loads(payload_bytes.decode('utf-8'))
 
 
 def get_jwt_token_with_private_key(private_key: str) -> dict:
@@ -67,20 +89,41 @@ def get_jwt_token_with_private_key(private_key: str) -> dict:
         print("错误: 未获取到 signedData")
         return None
 
-    # Step 2: 签名消息
+    # Step 2: 解析 JWT Token，获取 SIWE 消息
     print()
-    print("步骤 2: 签名消息...")
+    print("步骤 2: 解析 JWT 获取 SIWE 消息...")
 
-    # 根据文档，需要签名 signedData
-    message = encode_defunct(text=signed_data)
+    try:
+        payload = parse_jwt(signed_data)
+        print(f"JWT Payload: {json.dumps(payload, indent=2, ensure_ascii=False)}")
+
+        siwe_message = payload.get("message")
+        if not siwe_message:
+            print("错误: JWT payload 中没有 'message' 字段")
+            return None
+
+        print(f"SIWE 消息长度: {len(siwe_message)} 字符")
+        print(f"SIWE 消息内容:\n{siwe_message}")
+    except Exception as e:
+        print(f"JWT 解析错误: {e}")
+        return None
+
+    # Step 3: 签名 SIWE 消息（不是整个 JWT Token！）
+    print()
+    print("步骤 3: 签名 SIWE 消息...")
+
+    # 重要：签名的是 payload.message (SIWE 消息)，而不是整个 signedData (JWT Token)
+    message = encode_defunct(text=siwe_message)
     signed_message = account.sign_message(message)
-    signature = signed_message.signature.hex()
+    # 注意：StandX 需要带 0x 前缀的签名
+    signature = "0x" + signed_message.signature.hex()
 
     print(f"签名: {signature[:50]}...")
+    print(f"签名长度: {len(signature)}")
 
-    # Step 3: 调用 login 获取 JWT Token
+    # Step 4: 调用 login 获取 JWT Token
     print()
-    print("步骤 3: 调用 login 获取 JWT Token...")
+    print("步骤 4: 调用 login 获取 JWT Token...")
     login_url = f"{API_BASE}/login?chain={CHAIN}"
     login_data = {
         "signature": signature,
