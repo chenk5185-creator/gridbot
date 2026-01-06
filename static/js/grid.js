@@ -1080,17 +1080,14 @@ async function getJwtToken() {
         // Step 3: 使用 MetaMask 签名 SIWE 消息
         status.textContent = '⏳ 步骤 3/4: 请在 MetaMask 中签名...';
 
-        // 将消息转换为 hex 格式，确保字符编码正确
-        const messageHex = '0x' + Array.from(new TextEncoder().encode(messageToSign))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-
+        // SIWE 标准 (EIP-4361) 要求直接签名原始消息字符串
+        // 不需要转换为 hex，MetaMask personal_sign 会自动处理
+        // 参考: https://docs.siwe.xyz/ 和 https://eips.ethereum.org/EIPS/eip-4361
         console.log('签名 SIWE 消息:', messageToSign);
-        console.log('消息 hex:', messageHex.substring(0, 100) + '...');
 
         const signature = await window.ethereum.request({
             method: 'personal_sign',
-            params: [messageHex, walletAddress]
+            params: [messageToSign, walletAddress]
         });
 
         console.log('签名完成:', signature);
