@@ -1006,6 +1006,46 @@ async function getJwtToken() {
         return;
     }
 
+    // 切换到 BSC 网络（StandX 要求 chainId: 56）
+    const BSC_CHAIN_ID = '0x38'; // 56 in hex
+    try {
+        const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (currentChainId !== BSC_CHAIN_ID) {
+            console.log('当前链:', currentChainId, '需要切换到 BSC (0x38)');
+            try {
+                // 尝试切换到 BSC
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: BSC_CHAIN_ID }]
+                });
+            } catch (switchError) {
+                // 如果 BSC 网络未添加，尝试添加
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: BSC_CHAIN_ID,
+                            chainName: 'BNB Smart Chain',
+                            nativeCurrency: {
+                                name: 'BNB',
+                                symbol: 'BNB',
+                                decimals: 18
+                            },
+                            rpcUrls: ['https://bsc-dataseed.binance.org/'],
+                            blockExplorerUrls: ['https://bscscan.com/']
+                        }]
+                    });
+                } else {
+                    throw switchError;
+                }
+            }
+            console.log('已切换到 BSC 网络');
+        }
+    } catch (e) {
+        showToast('切换到 BSC 网络失败: ' + e.message, 'error');
+        return;
+    }
+
     // 显示加载状态
     btn.classList.add('btn-loading');
     btn.disabled = true;
@@ -1080,17 +1120,14 @@ async function getJwtToken() {
         // Step 3: 使用 MetaMask 签名 SIWE 消息
         status.textContent = '⏳ 步骤 3/4: 请在 MetaMask 中签名...';
 
-        // 将消息转换为 hex 格式，确保字符编码正确
-        const messageHex = '0x' + Array.from(new TextEncoder().encode(messageToSign))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-
+        // SIWE 标准 (EIP-4361) 要求直接签名原始消息字符串
+        // 不需要转换为 hex，MetaMask personal_sign 会自动处理
+        // 参考: https://docs.siwe.xyz/ 和 https://eips.ethereum.org/EIPS/eip-4361
         console.log('签名 SIWE 消息:', messageToSign);
-        console.log('消息 hex:', messageHex.substring(0, 100) + '...');
 
         const signature = await window.ethereum.request({
             method: 'personal_sign',
-            params: [messageHex, walletAddress]
+            params: [messageToSign, walletAddress]
         });
 
         console.log('签名完成:', signature);
