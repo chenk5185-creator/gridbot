@@ -841,6 +841,125 @@ function restoreApiConfig() {
     updateApiStatusUI();
 }
 
+/**
+ * 获取 JWT Token
+ *
+ * 根据 StandX 官方文档实现：
+ * https://docs.standx.com/standx-api/perps-auth
+ */
+async function getJwtToken() {
+    const btn = document.getElementById('getJwtTokenBtn');
+    const status = document.getElementById('getTokenStatus');
+    const tokenInput = document.getElementById('jwtTokenInput');
+
+    // 检查钱包是否连接
+    if (!isMetaMaskInstalled()) {
+        showToast('请先安装 MetaMask', 'error');
+        return;
+    }
+
+    // 获取钱包地址
+    let walletAddress;
+    try {
+        const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts'
+        });
+        if (!accounts || accounts.length === 0) {
+            showToast('请先连接 MetaMask 钱包', 'warning');
+            return;
+        }
+        walletAddress = accounts[0];
+    } catch (e) {
+        showToast('连接钱包失败: ' + e.message, 'error');
+        return;
+    }
+
+    // 显示加载状态
+    btn.classList.add('btn-loading');
+    btn.disabled = true;
+    status.className = 'get-token-status loading';
+    status.textContent = '⏳ 步骤 1/3: 调用 prepare-signin...';
+    status.style.display = 'block';
+
+    const STANDX_API = 'https://api.standx.com/v1/offchain';
+    const CHAIN = 'bsc';
+
+    try {
+        // Step 1: 调用 prepare-signin
+        const prepareResponse = await fetch(`${STANDX_API}/prepare-signin?chain=${CHAIN}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                address: walletAddress,
+                requestId: walletAddress.slice(0, 20)
+            })
+        });
+
+        if (!prepareResponse.ok) {
+            throw new Error(`prepare-signin 失败: ${await prepareResponse.text()}`);
+        }
+
+        const prepareData = await prepareResponse.json();
+        console.log('prepare-signin 响应:', prepareData);
+
+        const signedData = prepareData.signedData;
+        if (!signedData) {
+            throw new Error('未获取到 signedData');
+        }
+
+        // Step 2: 使用 MetaMask 签名
+        status.textContent = '⏳ 步骤 2/3: 请在 MetaMask 中签名...';
+
+        const signature = await window.ethereum.request({
+            method: 'personal_sign',
+            params: [signedData, walletAddress]
+        });
+
+        console.log('签名完成');
+
+        // Step 3: 调用 login 获取 JWT Token
+        status.textContent = '⏳ 步骤 3/3: 获取 JWT Token...';
+
+        const loginResponse = await fetch(`${STANDX_API}/login?chain=${CHAIN}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                signature: signature,
+                signedData: signedData,
+                expiresSeconds: 604800  // 7 天
+            })
+        });
+
+        if (!loginResponse.ok) {
+            throw new Error(`login 失败: ${await loginResponse.text()}`);
+        }
+
+        const loginData = await loginResponse.json();
+        console.log('login 响应:', loginData);
+
+        const jwtToken = loginData.token;
+        if (!jwtToken) {
+            throw new Error('未获取到 token');
+        }
+
+        // 成功！填入 Token
+        tokenInput.value = jwtToken;
+        status.className = 'get-token-status success';
+        status.textContent = '✅ JWT Token 获取成功！已自动填入下方输入框';
+
+        showToast('JWT Token 获取成功！', 'success');
+
+    } catch (error) {
+        console.error('获取 Token 错误:', error);
+        status.className = 'get-token-status error';
+        status.textContent = '❌ ' + error.message;
+        showToast('获取 Token 失败: ' + error.message, 'error');
+    } finally {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+    }
+}
+
 // ========== 事件绑定 ==========
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -869,6 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // API 配置按钮
     document.getElementById('configApiBtn').addEventListener('click', openApiConfigModal);
+    document.getElementById('getJwtTokenBtn').addEventListener('click', getJwtToken);
     document.getElementById('testApiBtn').addEventListener('click', testApiConnection);
     document.getElementById('saveApiBtn').addEventListener('click', saveApiConfig);
 
