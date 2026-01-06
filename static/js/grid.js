@@ -1006,6 +1006,46 @@ async function getJwtToken() {
         return;
     }
 
+    // 切换到 BSC 网络（StandX 要求 chainId: 56）
+    const BSC_CHAIN_ID = '0x38'; // 56 in hex
+    try {
+        const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (currentChainId !== BSC_CHAIN_ID) {
+            console.log('当前链:', currentChainId, '需要切换到 BSC (0x38)');
+            try {
+                // 尝试切换到 BSC
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: BSC_CHAIN_ID }]
+                });
+            } catch (switchError) {
+                // 如果 BSC 网络未添加，尝试添加
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: BSC_CHAIN_ID,
+                            chainName: 'BNB Smart Chain',
+                            nativeCurrency: {
+                                name: 'BNB',
+                                symbol: 'BNB',
+                                decimals: 18
+                            },
+                            rpcUrls: ['https://bsc-dataseed.binance.org/'],
+                            blockExplorerUrls: ['https://bscscan.com/']
+                        }]
+                    });
+                } else {
+                    throw switchError;
+                }
+            }
+            console.log('已切换到 BSC 网络');
+        }
+    } catch (e) {
+        showToast('切换到 BSC 网络失败: ' + e.message, 'error');
+        return;
+    }
+
     // 显示加载状态
     btn.classList.add('btn-loading');
     btn.disabled = true;
