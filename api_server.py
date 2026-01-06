@@ -468,6 +468,16 @@ async def save_api_config(
     """
     global exchange_adapter, grid_engine
 
+    # 调试日志
+    print(f"\n{'='*60}")
+    print(f"💾 保存 API 配置")
+    print(f"{'='*60}")
+    print(f"   simulation_mode: {request.simulation_mode}")
+    print(f"   jwt_token: {'有' if request.jwt_token else '无'} ({len(request.jwt_token) if request.jwt_token else 0} 字符)")
+    print(f"   signing_key: {'有' if request.signing_key else '无'}")
+    print(f"   request_id: {'有' if request.request_id else '无'}")
+    print(f"{'='*60}\n")
+
     # 存储配置（使用会话 ID 或 'default'）
     config_key = session_id or 'default'
     api_configs[config_key] = {
@@ -496,6 +506,11 @@ async def save_api_config(
             # 更新网格引擎的适配器
             if grid_engine:
                 grid_engine.exchange = exchange_adapter
+
+            print(f"✅ 已切换到真实交易模式！")
+            print(f"   simulation={exchange_adapter.simulation}")
+            print(f"   jwt_token={'有' if exchange_adapter.jwt_token else '无'}")
+            print(f"   signing_key={'有' if exchange_adapter.signing_key else '无'}")
 
             return {
                 "success": True,
@@ -597,6 +612,19 @@ async def create_grid(request: GridCreateRequest, session_id: str = Depends(requ
 
     创建并启动一个新的网格交易策略
     """
+    # 调试日志
+    print(f"\n{'='*60}")
+    print(f"📊 创建网格请求")
+    print(f"{'='*60}")
+    print(f"   交易对: {request.symbol}")
+    print(f"   价格区间: {request.lower_price} - {request.upper_price}")
+    print(f"   网格数: {request.grid_count}")
+    print(f"   每格金额: {request.per_grid_amount}")
+    print(f"   交易所适配器模式: {'模拟' if exchange_adapter.simulation else '真实'}")
+    print(f"   JWT Token: {'已配置' if exchange_adapter.jwt_token else '未配置'}")
+    print(f"   签名密钥: {'已配置' if exchange_adapter.signing_key else '未配置'}")
+    print(f"{'='*60}\n")
+
     # 获取钱包地址
     address = wallet_manager.get_address(session_id)
 
