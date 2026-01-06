@@ -297,14 +297,28 @@
             <div class="modal-body">
                 <div class="api-config-info">
                     <p>配置 StandX API 后，您可以进行真实交易。不配置则使用模拟模式。</p>
-                    <p class="api-doc-link">
-                        <a href="https://docs.standx.com/standx-api/perps-auth" target="_blank">📖 如何获取 JWT Token？</a>
-                    </p>
                 </div>
 
-                <div class="form-group">
-                    <label>JWT Token</label>
-                    <textarea class="input textarea" id="jwtTokenInput" placeholder="粘贴您的 StandX JWT Token..."></textarea>
+                <!-- 获取 Token 区域 -->
+                <div class="get-token-section">
+                    <div class="get-token-header">
+                        <span>🔑 第一步：获取 JWT Token</span>
+                    </div>
+                    <p class="get-token-desc">点击下方按钮，使用 MetaMask 签名获取 Token（需要先连接钱包）</p>
+                    <button class="btn-primary" id="getJwtTokenBtn" style="width: 100%;">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 12.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
+                            <path d="M8 4v4l3 1.5"/>
+                        </svg>
+                        获取 JWT Token
+                    </button>
+                    <div id="getTokenStatus" class="get-token-status" style="display: none;"></div>
+                </div>
+
+                <!-- Token 输入区域 -->
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>🔐 第二步：确认 JWT Token</label>
+                    <textarea class="input textarea" id="jwtTokenInput" placeholder="Token 将自动填入，或手动粘贴..."></textarea>
                     <span class="hint">JWT Token 有效期为 7 天，过期后需要重新获取</span>
                 </div>
 
