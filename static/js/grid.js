@@ -907,15 +907,36 @@ async function getJwtToken() {
             throw new Error('未获取到 signedData');
         }
 
-        // Step 2: 使用 MetaMask 签名
+        // signedData 是一个 JWT，需要解析获取其中的 message
+        // JWT 格式: header.payload.signature
+        const jwtParts = signedData.split('.');
+        if (jwtParts.length !== 3) {
+            throw new Error('signedData 格式错误');
+        }
+
+        // 解析 payload (base64url 解码)
+        const payloadBase64 = jwtParts[1];
+        const payloadJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
+        const payload = JSON.parse(payloadJson);
+        console.log('JWT payload:', payload);
+
+        // 获取需要签名的消息
+        const messageToSign = payload.message;
+        if (!messageToSign) {
+            throw new Error('未找到待签名消息');
+        }
+
+        console.log('待签名消息:', messageToSign);
+
+        // Step 2: 使用 MetaMask 签名消息
         status.textContent = '⏳ 步骤 2/3: 请在 MetaMask 中签名...';
 
         const signature = await window.ethereum.request({
             method: 'personal_sign',
-            params: [signedData, walletAddress]
+            params: [messageToSign, walletAddress]
         });
 
-        console.log('签名完成');
+        console.log('签名完成:', signature);
 
         // Step 3: 调用 login 获取 JWT Token
         status.textContent = '⏳ 步骤 3/3: 获取 JWT Token...';
@@ -925,13 +946,15 @@ async function getJwtToken() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 signature: signature,
-                signedData: signedData,
-                expiresSeconds: 604800  // 7 天
+                signedData: signedData,  // 发送原始的 signedData JWT
+                expiresSeconds: 604800   // 7 天
             })
         });
 
         if (!loginResponse.ok) {
-            throw new Error(`login 失败: ${await loginResponse.text()}`);
+            const errorText = await loginResponse.text();
+            console.error('login 失败:', errorText);
+            throw new Error(`login 失败: ${errorText}`);
         }
 
         const loginData = await loginResponse.json();
