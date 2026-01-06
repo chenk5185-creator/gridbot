@@ -1077,8 +1077,11 @@ async function getJwtToken() {
 
         console.log('待签名消息:', messageToSign);
 
-        // Step 3: 使用 MetaMask 签名消息
+        // Step 3: 使用 MetaMask 签名 SIWE 消息
         status.textContent = '⏳ 步骤 3/4: 请在 MetaMask 中签名...';
+
+        // 注意：签名的是 SIWE 消息本身，不是 signedData JWT
+        console.log('签名 SIWE 消息:', messageToSign);
 
         const signature = await window.ethereum.request({
             method: 'personal_sign',
@@ -1090,13 +1093,16 @@ async function getJwtToken() {
         // Step 4: 调用 login 获取 JWT Token
         status.textContent = '⏳ 步骤 4/4: 获取 JWT Token...';
 
-        // 构建登录请求
+        // 根据 StandX 官方文档构建登录请求
+        // https://docs.standx.com/standx-api/perps-auth
         const loginBody = {
-            signedData: signedData,   // prepare-signin 返回的 JWT
-            signature: signature,      // MetaMask 签名
-            expiresSeconds: 604800     // 7 天
+            signedData: signedData,    // prepare-signin 返回的 JWT (base64)
+            signature: signature,       // MetaMask 签名 (0x...)
+            expiresSeconds: 604800      // 7 天有效期
         };
         console.log('login 请求体:', loginBody);
+        console.log('signedData 前20字符:', signedData.substring(0, 50));
+        console.log('signature:', signature);
 
         const loginResponse = await fetch(`${STANDX_API}/login?chain=${CHAIN}`, {
             method: 'POST',
