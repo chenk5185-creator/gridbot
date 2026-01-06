@@ -410,7 +410,11 @@ class StandXAdapter(ExchangeAdapter):
         **kwargs
     ) -> Order:
         """创建订单"""
+        print(f"📝 create_order 被调用: symbol={symbol}, side={side}, type={order_type}, qty={quantity}, price={price}")
+        print(f"   simulation={self.simulation}, has_signing_key={bool(self.signing_key)}, has_jwt={bool(self.jwt_token)}")
+
         if self.simulation:
+            print("   ⚠️ 模拟模式，返回模拟订单")
             return self._create_mock_order(symbol, side, order_type, quantity, price, **kwargs)
 
         # 检查签名密钥
@@ -433,6 +437,8 @@ class StandXAdapter(ExchangeAdapter):
                 raise ValueError("限价单必须指定价格")
             order_data["price"] = self.format_price(price, symbol)
 
+        print(f"   📤 发送下单请求: {json.dumps(order_data)}")
+
         try:
             response = await self._request(
                 "POST",
@@ -441,6 +447,7 @@ class StandXAdapter(ExchangeAdapter):
                 need_auth=True,
                 need_sign=True
             )
+            print(f"   ✅ 下单成功: {response}")
 
             return Order(
                 order_id=str(response.get('order_id', '')),
