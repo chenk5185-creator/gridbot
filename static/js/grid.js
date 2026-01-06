@@ -17,6 +17,12 @@ const state = {
         address: null,
         sessionId: null,
     },
+    // API 配置状态
+    apiConfig: {
+        jwtToken: null,
+        simulationMode: true,  // 默认模拟模式
+        isConfigured: false,   // 是否已配置 API
+    },
     // 当前选择
     exchange: 'standx',
     symbol: 'BTC-USD',
@@ -638,11 +644,211 @@ async function stopGrid(gridId) {
     }
 }
 
+// ========== API 配置 ==========
+
+/**
+ * 打开 API 配置模态框
+ */
+function openApiConfigModal() {
+    const modal = document.getElementById('apiConfigModal');
+    const jwtInput = document.getElementById('jwtTokenInput');
+    const simModeCheckbox = document.getElementById('simulationMode');
+    const testResult = document.getElementById('apiTestResult');
+
+    // 恢复已保存的配置
+    if (state.apiConfig.jwtToken) {
+        jwtInput.value = state.apiConfig.jwtToken;
+    }
+    simModeCheckbox.checked = state.apiConfig.simulationMode;
+
+    // 隐藏测试结果
+    testResult.style.display = 'none';
+
+    modal.classList.add('active');
+}
+
+/**
+ * 关闭 API 配置模态框
+ */
+function closeApiConfigModal() {
+    document.getElementById('apiConfigModal').classList.remove('active');
+}
+
+/**
+ * 测试 API 连接
+ */
+async function testApiConnection() {
+    const jwtToken = document.getElementById('jwtTokenInput').value.trim();
+    const testBtn = document.getElementById('testApiBtn');
+    const testResult = document.getElementById('apiTestResult');
+
+    if (!jwtToken) {
+        showToast('请输入 JWT Token', 'warning');
+        return;
+    }
+
+    // 显示加载状态
+    testBtn.classList.add('btn-loading');
+    testBtn.textContent = '测试中...';
+    testResult.style.display = 'none';
+
+    try {
+        const result = await apiRequest('/api/config/test', {
+            method: 'POST',
+            body: JSON.stringify({ jwt_token: jwtToken }),
+        });
+
+        // 显示成功结果
+        testResult.innerHTML = `
+            <div class="test-success">
+                <span>✅ API 连接成功</span>
+                <span class="balance-info">账户余额: ${result.balance || '--'} DUSD</span>
+            </div>
+        `;
+        testResult.style.display = 'block';
+
+    } catch (error) {
+        // 显示错误结果
+        testResult.innerHTML = `
+            <div class="test-error">
+                <span>❌ 连接失败</span>
+                <span class="balance-info">${error.message || '请检查 JWT Token 是否正确'}</span>
+            </div>
+        `;
+        testResult.style.display = 'block';
+    } finally {
+        testBtn.classList.remove('btn-loading');
+        testBtn.textContent = '测试连接';
+    }
+}
+
+/**
+ * 保存 API 配置
+ */
+async function saveApiConfig() {
+    const jwtToken = document.getElementById('jwtTokenInput').value.trim();
+    const simulationMode = document.getElementById('simulationMode').checked;
+    const saveBtn = document.getElementById('saveApiBtn');
+
+    // 如果有 Token 但不是模拟模式，需要验证 Token
+    if (jwtToken && !simulationMode) {
+        saveBtn.classList.add('btn-loading');
+        saveBtn.textContent = '保存中...';
+
+        try {
+            await apiRequest('/api/config/api', {
+                method: 'POST',
+                body: JSON.stringify({
+                    jwt_token: jwtToken,
+                    simulation_mode: simulationMode,
+                }),
+            });
+
+            // 更新状态
+            state.apiConfig.jwtToken = jwtToken;
+            state.apiConfig.simulationMode = simulationMode;
+            state.apiConfig.isConfigured = true;
+
+            // 保存到 localStorage
+            localStorage.setItem('apiJwtToken', jwtToken);
+            localStorage.setItem('apiSimulationMode', simulationMode.toString());
+
+            // 更新 UI
+            updateApiStatusUI();
+
+            showToast('API 配置已保存，已启用真实交易模式', 'success');
+            closeApiConfigModal();
+
+        } catch (error) {
+            showToast(error.message || '保存配置失败', 'error');
+        } finally {
+            saveBtn.classList.remove('btn-loading');
+            saveBtn.textContent = '保存配置';
+        }
+    } else {
+        // 模拟模式，直接保存
+        state.apiConfig.jwtToken = jwtToken || null;
+        state.apiConfig.simulationMode = true;
+        state.apiConfig.isConfigured = !!jwtToken;
+
+        // 保存到 localStorage
+        if (jwtToken) {
+            localStorage.setItem('apiJwtToken', jwtToken);
+        } else {
+            localStorage.removeItem('apiJwtToken');
+        }
+        localStorage.setItem('apiSimulationMode', 'true');
+
+        // 通知后端
+        try {
+            await apiRequest('/api/config/api', {
+                method: 'POST',
+                body: JSON.stringify({
+                    jwt_token: jwtToken || null,
+                    simulation_mode: true,
+                }),
+            });
+        } catch (e) {
+            console.log('保存配置到后端失败:', e);
+        }
+
+        updateApiStatusUI();
+        showToast('已保存配置，使用模拟模式', 'success');
+        closeApiConfigModal();
+    }
+}
+
+/**
+ * 更新 API 状态 UI
+ */
+function updateApiStatusUI() {
+    const apiStatus = document.getElementById('apiStatus');
+
+    if (state.apiConfig.simulationMode) {
+        apiStatus.innerHTML = `
+            <span class="api-mode simulation">模拟模式</span>
+            <span class="api-hint">配置 StandX API 后可进行真实交易</span>
+        `;
+    } else if (state.apiConfig.isConfigured) {
+        apiStatus.innerHTML = `
+            <span class="api-mode live">真实交易</span>
+            <span class="api-hint">已连接 StandX API</span>
+        `;
+    } else {
+        apiStatus.innerHTML = `
+            <span class="api-mode simulation">模拟模式</span>
+            <span class="api-hint">配置 StandX API 后可进行真实交易</span>
+        `;
+    }
+}
+
+/**
+ * 恢复 API 配置
+ */
+function restoreApiConfig() {
+    const jwtToken = localStorage.getItem('apiJwtToken');
+    const simulationMode = localStorage.getItem('apiSimulationMode');
+
+    if (jwtToken) {
+        state.apiConfig.jwtToken = jwtToken;
+        state.apiConfig.isConfigured = true;
+    }
+
+    if (simulationMode !== null) {
+        state.apiConfig.simulationMode = simulationMode === 'true';
+    }
+
+    updateApiStatusUI();
+}
+
 // ========== 事件绑定 ==========
 
 document.addEventListener('DOMContentLoaded', () => {
     // 恢复会话
     restoreSession();
+
+    // 恢复 API 配置
+    restoreApiConfig();
 
     // 定时获取行情（WebSocket 的备用方案）
     setInterval(fetchTicker, 5000);
@@ -660,6 +866,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('walletModal').classList.remove('active');
         await connectMetaMask();
     });
+
+    // API 配置按钮
+    document.getElementById('configApiBtn').addEventListener('click', openApiConfigModal);
+    document.getElementById('testApiBtn').addEventListener('click', testApiConnection);
+    document.getElementById('saveApiBtn').addEventListener('click', saveApiConfig);
 
     // 交易对选择
     document.getElementById('symbolSelect').addEventListener('change', (e) => {

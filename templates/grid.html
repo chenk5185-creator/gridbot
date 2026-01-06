@@ -43,7 +43,20 @@
     <div class="container">
         <!-- 交易所选择 -->
         <div class="section card">
-            <h3>交易平台</h3>
+            <div class="section-header-with-btn">
+                <h3>交易平台</h3>
+                <button class="btn-secondary btn-small" id="configApiBtn">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/>
+                    </svg>
+                    配置 API
+                </button>
+            </div>
+            <div class="api-status" id="apiStatus">
+                <span class="api-mode simulation">模拟模式</span>
+                <span class="api-hint">配置 StandX API 后可进行真实交易</span>
+            </div>
             <div class="exchange-selector">
                 <div class="exchange-option active" data-exchange="standx">
                     <div class="exchange-icon">
@@ -269,6 +282,49 @@
                         <span>WalletConnect</span>
                         <div class="soon">即将支持</div>
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API 配置模态框 -->
+    <div class="modal" id="apiConfigModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>🔧 StandX API 配置</h3>
+                <button class="modal-close" onclick="document.getElementById('apiConfigModal').classList.remove('active')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="api-config-info">
+                    <p>配置 StandX API 后，您可以进行真实交易。不配置则使用模拟模式。</p>
+                    <p class="api-doc-link">
+                        <a href="https://docs.standx.com/standx-api/perps-auth" target="_blank">📖 如何获取 JWT Token？</a>
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label>JWT Token</label>
+                    <textarea class="input textarea" id="jwtTokenInput" placeholder="粘贴您的 StandX JWT Token..."></textarea>
+                    <span class="hint">JWT Token 有效期为 7 天，过期后需要重新获取</span>
+                </div>
+
+                <div class="api-config-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="simulationMode" checked>
+                        <span>模拟模式（不进行真实交易，用于测试）</span>
+                    </label>
+                </div>
+
+                <div class="api-test-result" id="apiTestResult" style="display: none;">
+                    <div class="test-success">
+                        <span>✅ API 连接成功</span>
+                        <span class="balance-info" id="testBalanceInfo"></span>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn-secondary" id="testApiBtn">测试连接</button>
+                    <button class="btn-primary" id="saveApiBtn">保存配置</button>
                 </div>
             </div>
         </div>

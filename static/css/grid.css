@@ -869,3 +869,196 @@ select.input {
         transform: rotate(360deg);
     }
 }
+
+/* ========== API 配置相关样式 ========== */
+
+/* 带按钮的区块标题 */
+.section-header-with-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.section-header-with-btn h3 {
+    margin-bottom: 0;
+}
+
+/* 小按钮 */
+.btn-small {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.btn-small svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* API 状态显示 */
+.api-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-md);
+    font-size: 0.875rem;
+}
+
+.api-mode {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.api-mode.simulation {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+}
+
+.api-mode.live {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+}
+
+.api-hint {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* 大模态框 */
+.modal-large {
+    max-width: 500px;
+}
+
+/* 文本域 */
+.textarea {
+    min-height: 100px;
+    resize: vertical;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
+/* API 配置信息 */
+.api-config-info {
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.api-config-info p {
+    margin-bottom: var(--spacing-sm);
+}
+
+.api-config-info p:last-child {
+    margin-bottom: 0;
+}
+
+.api-doc-link a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.api-doc-link a:hover {
+    text-decoration: underline;
+}
+
+/* API 配置选项 */
+.api-config-options {
+    margin: var(--spacing-md) 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+}
+
+/* API 测试结果 */
+.api-test-result {
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+}
+
+.test-success {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid var(--success);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+}
+
+.test-success span:first-child {
+    color: var(--success);
+    font-weight: 600;
+}
+
+.test-error {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--danger);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+}
+
+.test-error span:first-child {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.balance-info {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* 模态框操作按钮 */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+/* 按钮加载状态 */
+.btn-loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.btn-loading::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-left: var(--spacing-sm);
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}

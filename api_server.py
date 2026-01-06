@@ -60,6 +60,12 @@ class GridCreateRequest(BaseModel):
     take_profit_percent: Optional[float] = Field(None, description="止盈百分比")
 
 
+class ApiConfigRequest(BaseModel):
+    """API 配置请求"""
+    jwt_token: Optional[str] = Field(None, description="StandX JWT Token")
+    simulation_mode: bool = Field(default=True, description="是否使用模拟模式")
+
+
 class GridResponse(BaseModel):
     """网格响应"""
     id: int
@@ -84,6 +90,10 @@ exchange_adapter: Optional[StandXAdapter] = None
 
 # 网格引擎
 grid_engine: Optional[GridEngine] = None
+
+# API 配置（会话级别存储）
+# 格式: {session_id: {"jwt_token": str, "simulation_mode": bool}}
+api_configs: Dict[str, Dict[str, Any]] = {}
 
 # WebSocket 连接管理
 class ConnectionManager:
@@ -415,6 +425,130 @@ async def get_positions(session_id: str = Depends(require_auth)):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ========== API 配置 ==========
+
+@app.post("/api/config/api")
+async def save_api_config(
+    request: ApiConfigRequest,
+    session_id: str = Depends(get_session_id)
+):
+    """
+    保存 API 配置
+
+    保存用户的 StandX API 配置（JWT Token 和模拟模式设置）
+    """
+    global exchange_adapter, grid_engine
+
+    # 存储配置（使用会话 ID 或 'default'）
+    config_key = session_id or 'default'
+    api_configs[config_key] = {
+        "jwt_token": request.jwt_token,
+        "simulation_mode": request.simulation_mode
+    }
+
+    # 如果切换到真实模式且有 JWT Token，重新初始化适配器
+    if not request.simulation_mode and request.jwt_token:
+        try:
+            # 关闭旧适配器
+            if exchange_adapter:
+                await exchange_adapter.close()
+
+            # 创建新适配器（真实模式）
+            exchange_adapter = create_adapter('standx', {
+                'simulation': False,
+                'jwt_token': request.jwt_token
+            })
+            await exchange_adapter.initialize()
+
+            # 更新网格引擎的适配器
+            if grid_engine:
+                grid_engine.exchange = exchange_adapter
+
+            return {
+                "success": True,
+                "mode": "live",
+                "message": "已切换到真实交易模式"
+            }
+        except Exception as e:
+            # 如果失败，回退到模拟模式
+            exchange_adapter = create_adapter('standx', {'simulation': True})
+            await exchange_adapter.initialize()
+            raise HTTPException(status_code=400, detail=f"API 配置失败: {str(e)}")
+    else:
+        # 模拟模式
+        if exchange_adapter and not exchange_adapter.simulation:
+            # 切换回模拟模式
+            await exchange_adapter.close()
+            exchange_adapter = create_adapter('standx', {'simulation': True})
+            await exchange_adapter.initialize()
+
+            if grid_engine:
+                grid_engine.exchange = exchange_adapter
+
+        return {
+            "success": True,
+            "mode": "simulation",
+            "message": "已保存配置，使用模拟模式"
+        }
+
+
+@app.post("/api/config/test")
+async def test_api_connection(request: ApiConfigRequest):
+    """
+    测试 API 连接
+
+    使用提供的 JWT Token 测试与 StandX API 的连接
+    """
+    if not request.jwt_token:
+        raise HTTPException(status_code=400, detail="请提供 JWT Token")
+
+    try:
+        # 创建临时适配器进行测试
+        test_adapter = create_adapter('standx', {
+            'simulation': False,
+            'jwt_token': request.jwt_token
+        })
+        await test_adapter.initialize()
+
+        # 尝试获取账户余额
+        balances = await test_adapter.get_balance()
+
+        # 关闭测试适配器
+        await test_adapter.close()
+
+        # 找到 DUSD 余额
+        dusd_balance = None
+        for balance in balances:
+            if balance.asset == 'DUSD':
+                dusd_balance = balance.total
+                break
+
+        return {
+            "success": True,
+            "balance": dusd_balance or 0,
+            "message": "API 连接成功"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"连接测试失败: {str(e)}")
+
+
+@app.get("/api/config/status")
+async def get_api_config_status(session_id: str = Depends(get_session_id)):
+    """
+    获取 API 配置状态
+
+    返回当前的 API 配置模式（模拟/真实）
+    """
+    config_key = session_id or 'default'
+    config = api_configs.get(config_key, {})
+
+    return {
+        "simulation_mode": config.get("simulation_mode", True),
+        "is_configured": bool(config.get("jwt_token")),
+        "adapter_mode": "simulation" if (exchange_adapter and exchange_adapter.simulation) else "live"
+    }
 
 
 # ========== 网格交易 API ==========
