@@ -625,12 +625,66 @@ async function loadUserGrids() {
         const result = await apiRequest('/api/grid/list');
         state.grids = result.grids || [];
 
-        // 更新 UI（可以添加一个网格列表显示区域）
-        console.log('用户网格:', state.grids);
+        // 渲染网格列表
+        renderGridList();
 
     } catch (error) {
         console.error('加载网格列表失败:', error);
     }
+}
+
+/**
+ * 渲染网格列表
+ */
+function renderGridList() {
+    const gridList = document.getElementById('gridList');
+    if (!gridList) return;
+
+    if (state.grids.length === 0) {
+        gridList.innerHTML = '<div class="grid-empty">暂无网格</div>';
+        return;
+    }
+
+    gridList.innerHTML = state.grids.map(grid => `
+        <div class="grid-item ${grid.status}">
+            <div class="grid-item-header">
+                <span class="grid-symbol">${grid.symbol}</span>
+                <span class="grid-status ${grid.status}">${getStatusText(grid.status)}</span>
+            </div>
+            <div class="grid-item-info">
+                <div class="grid-info-row">
+                    <span>区间:</span>
+                    <span>$${formatPrice(grid.lower_price)} - $${formatPrice(grid.upper_price)}</span>
+                </div>
+                <div class="grid-info-row">
+                    <span>网格数:</span>
+                    <span>${grid.grid_count} 格 × ${grid.per_grid_amount} DUSD</span>
+                </div>
+                <div class="grid-info-row">
+                    <span>盈亏:</span>
+                    <span class="${grid.realized_pnl >= 0 ? 'profit' : 'loss'}">${grid.realized_pnl >= 0 ? '+' : ''}${grid.realized_pnl.toFixed(2)} DUSD</span>
+                </div>
+            </div>
+            <div class="grid-item-actions">
+                ${grid.status === 'running' ? `<button class="btn-sm btn-warning" onclick="stopGrid(${grid.id})">停止</button>` : ''}
+                ${grid.status !== 'running' ? `<button class="btn-sm btn-danger" onclick="deleteGrid(${grid.id})">删除</button>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+/**
+ * 获取状态文本
+ */
+function getStatusText(status) {
+    const statusMap = {
+        'running': '运行中',
+        'stopped': '已停止',
+        'paused': '已暂停',
+        'completed': '已完成',
+        'pending': '等待中'
+    };
+    return statusMap[status] || status;
 }
 
 /**
@@ -646,6 +700,21 @@ async function stopGrid(gridId) {
     }
 }
 
+/**
+ * 删除网格
+ */
+async function deleteGrid(gridId) {
+    if (!confirm('确定要删除这个网格吗？')) return;
+
+    try {
+        await apiRequest(`/api/grid/${gridId}`, { method: 'DELETE' });
+        showToast('网格已删除', 'success');
+        loadUserGrids();
+    } catch (error) {
+        showToast(error.message || '删除网格失败', 'error');
+    }
+}
+
 // ========== API 配置 ==========
 
 /**
@@ -654,14 +723,12 @@ async function stopGrid(gridId) {
 function openApiConfigModal() {
     const modal = document.getElementById('apiConfigModal');
     const jwtInput = document.getElementById('jwtTokenInput');
-    const simModeCheckbox = document.getElementById('simulationMode');
     const testResult = document.getElementById('apiTestResult');
 
     // 恢复已保存的配置
     if (state.apiConfig.jwtToken) {
         jwtInput.value = state.apiConfig.jwtToken;
     }
-    simModeCheckbox.checked = state.apiConfig.simulationMode;
 
     // 隐藏测试结果
     testResult.style.display = 'none';
@@ -729,74 +796,45 @@ async function testApiConnection() {
  */
 async function saveApiConfig() {
     const jwtToken = document.getElementById('jwtTokenInput').value.trim();
-    const simulationMode = document.getElementById('simulationMode').checked;
     const saveBtn = document.getElementById('saveApiBtn');
 
-    // 如果有 Token 但不是模拟模式，需要验证 Token
-    if (jwtToken && !simulationMode) {
-        saveBtn.classList.add('btn-loading');
-        saveBtn.textContent = '保存中...';
+    if (!jwtToken) {
+        showToast('请输入 JWT Token', 'warning');
+        return;
+    }
 
-        try {
-            await apiRequest('/api/config/api', {
-                method: 'POST',
-                body: JSON.stringify({
-                    jwt_token: jwtToken,
-                    simulation_mode: simulationMode,
-                }),
-            });
+    saveBtn.classList.add('btn-loading');
+    saveBtn.textContent = '保存中...';
 
-            // 更新状态
-            state.apiConfig.jwtToken = jwtToken;
-            state.apiConfig.simulationMode = simulationMode;
-            state.apiConfig.isConfigured = true;
+    try {
+        await apiRequest('/api/config/api', {
+            method: 'POST',
+            body: JSON.stringify({
+                jwt_token: jwtToken,
+                simulation_mode: false,  // 始终使用真实交易模式
+            }),
+        });
 
-            // 保存到 localStorage
-            localStorage.setItem('apiJwtToken', jwtToken);
-            localStorage.setItem('apiSimulationMode', simulationMode.toString());
-
-            // 更新 UI
-            updateApiStatusUI();
-
-            showToast('API 配置已保存，已启用真实交易模式', 'success');
-            closeApiConfigModal();
-
-        } catch (error) {
-            showToast(error.message || '保存配置失败', 'error');
-        } finally {
-            saveBtn.classList.remove('btn-loading');
-            saveBtn.textContent = '保存配置';
-        }
-    } else {
-        // 模拟模式，直接保存
-        state.apiConfig.jwtToken = jwtToken || null;
-        state.apiConfig.simulationMode = true;
-        state.apiConfig.isConfigured = !!jwtToken;
+        // 更新状态
+        state.apiConfig.jwtToken = jwtToken;
+        state.apiConfig.simulationMode = false;
+        state.apiConfig.isConfigured = true;
 
         // 保存到 localStorage
-        if (jwtToken) {
-            localStorage.setItem('apiJwtToken', jwtToken);
-        } else {
-            localStorage.removeItem('apiJwtToken');
-        }
-        localStorage.setItem('apiSimulationMode', 'true');
+        localStorage.setItem('apiJwtToken', jwtToken);
+        localStorage.setItem('apiSimulationMode', 'false');
 
-        // 通知后端
-        try {
-            await apiRequest('/api/config/api', {
-                method: 'POST',
-                body: JSON.stringify({
-                    jwt_token: jwtToken || null,
-                    simulation_mode: true,
-                }),
-            });
-        } catch (e) {
-            console.log('保存配置到后端失败:', e);
-        }
-
+        // 更新 UI
         updateApiStatusUI();
-        showToast('已保存配置，使用模拟模式', 'success');
+
+        showToast('API 配置已保存，已启用真实交易', 'success');
         closeApiConfigModal();
+
+    } catch (error) {
+        showToast(error.message || '保存配置失败', 'error');
+    } finally {
+        saveBtn.classList.remove('btn-loading');
+        saveBtn.textContent = '保存配置';
     }
 }
 
@@ -806,20 +844,15 @@ async function saveApiConfig() {
 function updateApiStatusUI() {
     const apiStatus = document.getElementById('apiStatus');
 
-    if (state.apiConfig.simulationMode) {
-        apiStatus.innerHTML = `
-            <span class="api-mode simulation">模拟模式</span>
-            <span class="api-hint">配置 StandX API 后可进行真实交易</span>
-        `;
-    } else if (state.apiConfig.isConfigured) {
+    if (state.apiConfig.isConfigured) {
         apiStatus.innerHTML = `
             <span class="api-mode live">真实交易</span>
             <span class="api-hint">已连接 StandX API</span>
         `;
     } else {
         apiStatus.innerHTML = `
-            <span class="api-mode simulation">模拟模式</span>
-            <span class="api-hint">配置 StandX API 后可进行真实交易</span>
+            <span class="api-mode not-configured">未配置</span>
+            <span class="api-hint">请先配置 JWT Token</span>
         `;
     }
 }
