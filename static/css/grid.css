@@ -1083,6 +1083,40 @@ select.input {
     margin-bottom: var(--spacing-md);
 }
 
+.get-token-steps {
+    margin-bottom: var(--spacing-md);
+}
+
+.get-token-steps ol {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.8;
+}
+
+.get-token-steps li {
+    margin-bottom: 4px;
+}
+
+.get-token-steps a {
+    color: var(--accent-primary);
+    text-decoration: none;
+}
+
+.get-token-steps a:hover {
+    text-decoration: underline;
+}
+
+.get-token-steps code {
+    background: var(--bg-secondary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.85em;
+    color: var(--accent-primary);
+}
+
 .get-token-status {
     margin-top: var(--spacing-md);
     padding: var(--spacing-sm) var(--spacing-md);

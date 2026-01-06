@@ -302,17 +302,20 @@
                 <!-- 获取 Token 区域 -->
                 <div class="get-token-section">
                     <div class="get-token-header">
-                        <span>🔑 第一步：获取 JWT Token</span>
+                        <span>🔑 第一步：从 StandX 获取 JWT Token</span>
                     </div>
-                    <p class="get-token-desc">点击下方按钮，使用 MetaMask 签名获取 Token（需要先连接钱包）</p>
-                    <button class="btn-primary" id="getJwtTokenBtn" style="width: 100%;">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 12.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
-                            <path d="M8 4v4l3 1.5"/>
-                        </svg>
-                        获取 JWT Token
-                    </button>
-                    <div id="getTokenStatus" class="get-token-status" style="display: none;"></div>
+                    <div class="get-token-steps">
+                        <ol>
+                            <li>打开 <a href="https://standx.com" target="_blank" rel="noopener">StandX.com</a> 并用 MetaMask 登录</li>
+                            <li>打开浏览器开发者工具（F12）</li>
+                            <li>切换到 <strong>Application</strong> 标签</li>
+                            <li>在左侧找到 <strong>Local Storage → https://standx.com</strong></li>
+                            <li>复制 <code>jwt_token</code> 或 <code>token</code> 的值</li>
+                        </ol>
+                    </div>
+                    <a href="https://standx.com" target="_blank" rel="noopener" class="btn-secondary" style="width: 100%; text-align: center; display: block; text-decoration: none;">
+                        打开 StandX.com →
+                    </a>
                 </div>
 
                 <!-- Token 输入区域 -->

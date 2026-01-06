@@ -1011,7 +1011,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // API 配置按钮
     document.getElementById('configApiBtn').addEventListener('click', openApiConfigModal);
-    document.getElementById('getJwtTokenBtn').addEventListener('click', getJwtToken);
     document.getElementById('testApiBtn').addEventListener('click', testApiConnection);
     document.getElementById('saveApiBtn').addEventListener('click', saveApiConfig);
 
