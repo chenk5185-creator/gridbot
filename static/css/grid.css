@@ -1,0 +1,871 @@
+/**
+ * 网格交易工具 - 样式表
+ *
+ * 设计风格：现代简洁，深色主题
+ * 参考：专业交易平台 UI
+ */
+
+/* ========== CSS 变量定义 ========== */
+:root {
+    /* 主色调 */
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --primary-light: rgba(59, 130, 246, 0.1);
+
+    /* 语义色 */
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #06b6d4;
+
+    /* 背景色 */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --bg-card: #1e293b;
+
+    /* 文字色 */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    /* 边框 */
+    --border-color: #334155;
+    --border-radius: 8px;
+    --border-radius-lg: 12px;
+
+    /* 阴影 */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
+
+    /* 间距 */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+}
+
+/* ========== 基础样式 ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* ========== 导航栏 ========== */
+.navbar {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--spacing-md) var(--spacing-lg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.nav-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.wallet-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
+}
+
+.status-dot.connected {
+    background: var(--success);
+}
+
+/* ========== 按钮 ========== */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-large {
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-size: 1rem;
+    width: 100%;
+}
+
+.btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--border-color);
+}
+
+.btn-danger {
+    background: var(--danger);
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+/* ========== 容器和卡片 ========== */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    color: var(--text-primary);
+}
+
+/* ========== 网格配置布局 ========== */
+.grid-config {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: var(--spacing-lg);
+}
+
+.config-left {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.config-right {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+/* ========== 交易所选择器 ========== */
+.exchange-selector {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.exchange-option {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.exchange-option.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+.exchange-option.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.exchange-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.exchange-icon img {
+    width: 100%;
+    height: 100%;
+}
+
+.icon-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.exchange-info {
+    flex: 1;
+}
+
+.exchange-name {
+    font-weight: 600;
+}
+
+.exchange-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.exchange-check {
+    color: var(--primary);
+    font-size: 1.25rem;
+}
+
+/* ========== 表单元素 ========== */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.form-row:last-child {
+    margin-bottom: 0;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.form-group label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.input {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.input::placeholder {
+    color: var(--text-muted);
+}
+
+select.input {
+    cursor: pointer;
+}
+
+.hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* ========== 价格显示 ========== */
+.price-display {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    text-align: center;
+}
+
+.price-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--success);
+}
+
+/* ========== 网格模式选择 ========== */
+.grid-modes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+}
+
+.mode-card {
+    padding: var(--spacing-md);
+    background: var(--bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: var(--border-radius);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-card:hover {
+    background: var(--border-color);
+}
+
+.mode-card.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+.mode-icon {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.mode-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.mode-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* ========== 杠杆按钮 ========== */
+.leverage-btns {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.lev-btn {
+    flex: 1;
+    padding: var(--spacing-sm);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lev-btn:hover {
+    background: var(--border-color);
+}
+
+.lev-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+/* ========== 高级设置折叠 ========== */
+.collapsible .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
+.collapsible .section-header h3 {
+    margin-bottom: 0;
+}
+
+.toggle-icon {
+    transition: transform 0.2s;
+}
+
+.collapsible.open .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.advanced-content {
+    display: none;
+    padding-top: var(--spacing-md);
+}
+
+.collapsible.open .advanced-content {
+    display: block;
+}
+
+/* ========== 网格预览 ========== */
+.grid-preview {
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#gridCanvas {
+    max-width: 100%;
+}
+
+.grid-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: var(--spacing-md);
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.stat .label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.stat .value {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* ========== 风险提示 ========== */
+.risk-card {
+    border-color: var(--warning);
+}
+
+.risk-level {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge.low {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+}
+
+.badge.medium {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+}
+
+.badge.high {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+}
+
+.risk-list {
+    list-style: none;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.risk-list li {
+    padding: var(--spacing-xs) 0;
+    padding-left: var(--spacing-md);
+    position: relative;
+}
+
+.risk-list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--warning);
+}
+
+/* ========== 模态框 ========== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    width: 90%;
+    max-width: 400px;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    font-size: 1.125rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: var(--spacing-lg);
+}
+
+/* ========== 钱包选项 ========== */
+.wallet-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.wallet-option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.wallet-option:hover:not(.disabled) {
+    border-color: var(--primary);
+}
+
+.wallet-option.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.wallet-option img {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius);
+}
+
+.wallet-option span {
+    flex: 1;
+    font-weight: 500;
+}
+
+.recommended {
+    background: var(--primary);
+    color: white;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: 0.75rem;
+}
+
+.soon {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* ========== Toast 通知 ========== */
+.toast-container {
+    position: fixed;
+    bottom: var(--spacing-lg);
+    right: var(--spacing-lg);
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.toast {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    animation: slideIn 0.3s ease;
+}
+
+.toast.success {
+    border-color: var(--success);
+}
+
+.toast.error {
+    border-color: var(--danger);
+}
+
+.toast.warning {
+    border-color: var(--warning);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ========== 价格滑块 ========== */
+.price-slider {
+    position: relative;
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    margin-top: var(--spacing-md);
+}
+
+.slider-track {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+.slider-fill {
+    position: absolute;
+    height: 100%;
+    background: var(--primary);
+    border-radius: 4px;
+    left: 20%;
+    right: 20%;
+}
+
+.slider-marker {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.marker-dot {
+    width: 12px;
+    height: 12px;
+    background: var(--success);
+    border-radius: 50%;
+    border: 2px solid var(--bg-primary);
+}
+
+.marker-label {
+    font-size: 0.625rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* ========== 操作按钮 ========== */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+/* ========== 响应式设计 ========== */
+@media (max-width: 1024px) {
+    .grid-config {
+        grid-template-columns: 1fr;
+    }
+
+    .config-right {
+        order: -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: var(--spacing-md);
+    }
+
+    .exchange-selector {
+        flex-direction: column;
+    }
+
+    .grid-modes {
+        grid-template-columns: 1fr;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .nav-actions {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+}
+
+/* ========== 网格列表（已运行的网格） ========== */
+.grid-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.grid-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+}
+
+.grid-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.grid-item-symbol {
+    font-weight: 600;
+}
+
+.grid-item-range {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.grid-item-pnl {
+    text-align: right;
+}
+
+.grid-item-pnl .value {
+    font-weight: 600;
+}
+
+.grid-item-pnl .value.positive {
+    color: var(--success);
+}
+
+.grid-item-pnl .value.negative {
+    color: var(--danger);
+}
+
+.grid-item-pnl .label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* ========== 订单表格 ========== */
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.orders-table th,
+.orders-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.orders-table th {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.orders-table .buy {
+    color: var(--success);
+}
+
+.orders-table .sell {
+    color: var(--danger);
+}
+
+/* ========== 加载动画 ========== */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

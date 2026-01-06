@@ -1,0 +1,18 @@
+# GridBot - 网格交易工具依赖
+
+# Web 框架
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# HTTP 客户端
+aiohttp>=3.9.0
+
+# 数据验证
+pydantic>=2.5.0
+
+# 以太坊相关（MetaMask 签名验证）
+eth-account>=0.10.0
+web3>=6.11.0
+
+# 环境变量
+python-dotenv>=1.0.0
