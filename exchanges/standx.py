@@ -210,17 +210,20 @@ class StandXAdapter(ExchangeAdapter):
             headers["Authorization"] = f"Bearer {self.jwt_token}"
 
         # 添加请求签名
-        if need_sign and self.signing_key and self.request_id:
+        # 参考官方文档: https://docs.standx.com/standx-api/perps-auth
+        if need_sign and self.signing_key:
+            # x-request-id 是每次请求生成的唯一 UUID，不是 Ed25519 公钥
+            request_id = str(uuid.uuid4())
             timestamp = int(time.time() * 1000)  # 毫秒时间戳
             payload = json.dumps(body, separators=(',', ':')) if body else ""
 
-            # 计算签名
-            signature = self._sign_request("v1", self.request_id, timestamp, payload)
+            # 计算签名: sign("{version},{request_id},{timestamp},{payload}")
+            signature = self._sign_request("v1", request_id, timestamp, payload)
 
             if signature:
                 headers.update({
                     "x-request-sign-version": "v1",
-                    "x-request-id": self.request_id,
+                    "x-request-id": request_id,
                     "x-request-timestamp": str(timestamp),
                     "x-request-signature": signature,
                 })
