@@ -210,17 +210,20 @@ class StandXAdapter(ExchangeAdapter):
             headers["Authorization"] = f"Bearer {self.jwt_token}"
 
         # 添加请求签名
-        if need_sign and self.signing_key and self.request_id:
+        # 参考官方文档: https://docs.standx.com/standx-api/perps-auth
+        if need_sign and self.signing_key:
+            # x-request-id 是每次请求生成的唯一 UUID，不是 Ed25519 公钥
+            request_id = str(uuid.uuid4())
             timestamp = int(time.time() * 1000)  # 毫秒时间戳
             payload = json.dumps(body, separators=(',', ':')) if body else ""
 
-            # 计算签名
-            signature = self._sign_request("v1", self.request_id, timestamp, payload)
+            # 计算签名: sign("{version},{request_id},{timestamp},{payload}")
+            signature = self._sign_request("v1", request_id, timestamp, payload)
 
             if signature:
                 headers.update({
                     "x-request-sign-version": "v1",
-                    "x-request-id": self.request_id,
+                    "x-request-id": request_id,
                     "x-request-timestamp": str(timestamp),
                     "x-request-signature": signature,
                 })
@@ -256,13 +259,17 @@ class StandXAdapter(ExchangeAdapter):
         url = f"{self.BASE_URL}{endpoint}"
         headers = self._get_headers(need_auth, need_sign, data)
 
+        # 重要：签名时使用 separators=(',', ':') 序列化 JSON
+        # 发送请求时也必须使用相同的序列化方式，否则签名验证会失败
+        body_str = json.dumps(data, separators=(',', ':')) if data else None
+
         try:
             async with self.session.request(
                 method,
                 url,
                 headers=headers,
                 params=params,
-                json=data,
+                data=body_str,  # 使用手动序列化的字符串，而非 json=data
                 timeout=aiohttp.ClientTimeout(total=30)
             ) as response:
                 response_text = await response.text()
@@ -407,28 +414,35 @@ class StandXAdapter(ExchangeAdapter):
         **kwargs
     ) -> Order:
         """创建订单"""
+        print(f"📝 create_order 被调用: symbol={symbol}, side={side}, type={order_type}, qty={quantity}, price={price}")
+        print(f"   simulation={self.simulation}, has_signing_key={bool(self.signing_key)}, has_jwt={bool(self.jwt_token)}")
+
         if self.simulation:
+            print("   ⚠️ 模拟模式，返回模拟订单")
             return self._create_mock_order(symbol, side, order_type, quantity, price, **kwargs)
 
         # 检查签名密钥
         if not self.signing_key:
             raise ValueError("需要 Ed25519 签名密钥才能下单。请重新获取 JWT Token。")
 
-        # 构建订单请求体
+        # 构建订单请求体（严格按照官方文档格式）
+        # 参考: https://docs.standx.com/standx-api/perps-auth
         order_data = {
             "symbol": symbol,
             "side": side.value,
             "order_type": order_type.value,
             "qty": self.format_quantity(quantity, symbol),
-            "leverage": kwargs.get("leverage", 1),
             "time_in_force": kwargs.get("time_in_force", "gtc"),
             "reduce_only": kwargs.get("reduce_only", False),
         }
 
+        # 限价单需要价格
         if order_type == OrderType.LIMIT:
             if price is None:
                 raise ValueError("限价单必须指定价格")
             order_data["price"] = self.format_price(price, symbol)
+
+        print(f"   📤 发送下单请求: {json.dumps(order_data)}")
 
         try:
             response = await self._request(
@@ -438,6 +452,7 @@ class StandXAdapter(ExchangeAdapter):
                 need_auth=True,
                 need_sign=True
             )
+            print(f"   ✅ 下单成功: {response}")
 
             return Order(
                 order_id=str(response.get('order_id', '')),
