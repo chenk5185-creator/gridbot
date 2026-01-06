@@ -14,5 +14,9 @@ pydantic>=2.5.0
 eth-account>=0.10.0
 web3>=6.11.0
 
+# Ed25519 签名（StandX API 请求签名）
+pynacl>=1.5.0
+base58>=2.1.0
+
 # 环境变量
 python-dotenv>=1.0.0
