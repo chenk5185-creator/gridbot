@@ -1096,20 +1096,33 @@ async function getJwtToken() {
             throw new Error('未获取到 signedData');
         }
 
-        // signedData 是一个 JWT，需要解析获取其中的 message
-        // JWT 格式: header.payload.signature
-        const jwtParts = signedData.split('.');
-        if (jwtParts.length !== 3) {
-            throw new Error('signedData 格式错误');
+        // 参考官方文档的 parseJwt 实现：
+        // https://docs.standx.com/standx-api/perps-auth
+        // Buffer.from(base64, "base64").toString("utf-8")
+        // 浏览器版本需要使用 TextDecoder 正确处理 UTF-8
+        function parseJwt(token) {
+            const base64Url = token.split('.')[1];
+            // 替换 base64url 字符为标准 base64 字符
+            let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            // 添加填充（base64 长度必须是 4 的倍数）
+            while (base64.length % 4) {
+                base64 += '=';
+            }
+            // 解码 base64 为二进制字符串
+            const binaryStr = atob(base64);
+            // 转换为 UTF-8（等价于 Buffer.from().toString('utf-8')）
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+                bytes[i] = binaryStr.charCodeAt(i);
+            }
+            const jsonStr = new TextDecoder().decode(bytes);
+            return JSON.parse(jsonStr);
         }
 
-        // 解析 payload (base64url 解码)
-        const payloadBase64 = jwtParts[1];
-        const payloadJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
-        const payload = JSON.parse(payloadJson);
+        const payload = parseJwt(signedData);
         console.log('JWT payload:', payload);
 
-        // 获取需要签名的消息
+        // 获取需要签名的消息（来自 payload.message）
         const messageToSign = payload.message;
         if (!messageToSign) {
             throw new Error('未找到待签名消息');
@@ -1118,12 +1131,9 @@ async function getJwtToken() {
         console.log('待签名消息:', messageToSign);
 
         // Step 3: 使用 MetaMask 签名 SIWE 消息
+        // 参考官方文档：const signature = await wallet.signMessage(payload.message);
+        // ethers.js 的 signMessage 等价于 MetaMask 的 personal_sign
         status.textContent = '⏳ 步骤 3/4: 请在 MetaMask 中签名...';
-
-        // SIWE 标准 (EIP-4361) 要求直接签名原始消息字符串
-        // 不需要转换为 hex，MetaMask personal_sign 会自动处理
-        // 参考: https://docs.siwe.xyz/ 和 https://eips.ethereum.org/EIPS/eip-4361
-        console.log('签名 SIWE 消息:', messageToSign);
 
         const signature = await window.ethereum.request({
             method: 'personal_sign',
@@ -1133,18 +1143,16 @@ async function getJwtToken() {
         console.log('签名完成:', signature);
 
         // Step 4: 调用 login 获取 JWT Token
+        // 参考官方文档的请求格式（注意字段顺序）：
+        // body: JSON.stringify({ signature, signedData, expiresSeconds })
         status.textContent = '⏳ 步骤 4/4: 获取 JWT Token...';
 
-        // 根据 StandX 官方文档构建登录请求
-        // https://docs.standx.com/standx-api/perps-auth
         const loginBody = {
-            signedData: signedData,    // prepare-signin 返回的 JWT (base64)
             signature: signature,       // MetaMask 签名 (0x...)
+            signedData: signedData,     // prepare-signin 返回的 JWT
             expiresSeconds: 604800      // 7 天有效期
         };
-        console.log('login 请求体:', loginBody);
-        console.log('signedData 前20字符:', signedData.substring(0, 50));
-        console.log('signature:', signature);
+        console.log('login 请求体:', JSON.stringify(loginBody, null, 2));
 
         const loginResponse = await fetch(`${STANDX_API}/login?chain=${CHAIN}`, {
             method: 'POST',
