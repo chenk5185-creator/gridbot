@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网格交易机器人</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="grid.css">
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="url(#logoGradient)"/>
+                    <path d="M8 12L16 8L24 12V20L16 24L8 20V12Z" stroke="white" stroke-width="2"/>
+                    <defs>
+                        <linearGradient id="logoGradient" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" stop-color="#3b82f6"/>
+                            <stop offset="100%" stop-color="#8b5cf6"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>网格交易</span>
+            </div>
+            <div class="nav-actions">
+                <div class="wallet-status" id="walletStatus">
+                    <div class="status-dot"></div>
+                    <span>未连接</span>
+                </div>
+                <button class="btn-primary" id="connectWallet">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M13.5 2h-11C1.67 2 1 2.67 1 3.5v9c0 .83.67 1.5 1.5 1.5h11c.83 0 1.5-.67 1.5-1.5v-9c0-.83-.67-1.5-1.5-1.5zm-11 1h11c.28 0 .5.22.5.5v2h-12v-2c0-.28.22-.5.5-.5zm11 10h-11c-.28 0-.5-.22-.5-.5v-5.5h12v5.5c0 .28-.22.5-.5.5z"/>
+                        <circle cx="11" cy="10" r="1"/>
+                    </svg>
+                    连接钱包
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 交易所选择 -->
+        <div class="section card">
+            <h3>交易平台</h3>
+            <div class="exchange-selector">
+                <div class="exchange-option active" data-exchange="standx">
+                    <div class="exchange-icon">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b82f6'/%3E%3Cpath d='M8 12L16 8L24 12V20L16 24L8 20V12Z' stroke='white' stroke-width='2'/%3E%3C/svg%3E" alt="StandX">
+                    </div>
+                    <div class="exchange-info">
+                        <div class="exchange-name">StandX</div>
+                        <div class="exchange-desc">去中心化衍生品交易</div>
+                    </div>
+                    <div class="exchange-check">✓</div>
+                </div>
+                
+                <div class="exchange-option disabled" data-exchange="binance">
+                    <div class="exchange-icon">
+                        <div class="icon-placeholder">B</div>
+                    </div>
+                    <div class="exchange-info">
+                        <div class="exchange-name">Binance</div>
+                        <div class="exchange-desc">即将支持</div>
+                    </div>
+                </div>
+                
+                <div class="exchange-option disabled" data-exchange="bybit">
+                    <div class="exchange-icon">
+                        <div class="icon-placeholder">By</div>
+                    </div>
+                    <div class="exchange-info">
+                        <div class="exchange-name">Bybit</div>
+                        <div class="exchange-desc">即将支持</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 网格配置 -->
+        <div class="grid-config">
+            <div class="config-left">
+                <!-- 交易对和模式 -->
+                <div class="section card">
+                    <h3>交易设置</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>交易对</label>
+                            <select class="input" id="symbolSelect">
+                                <option value="BTC-USD">BTC-USD</option>
+                                <option value="ETH-USD">ETH-USD</option>
+                                <option value="SOL-USD">SOL-USD</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>当前价格</label>
+                            <div class="price-display" id="currentPrice">
+                                <span class="price-value">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 网格模式 -->
+                <div class="section card">
+                    <h3>网格模式</h3>
+                    <div class="grid-modes">
+                        <div class="mode-card active" data-mode="neutral">
+                            <div class="mode-icon">📊</div>
+                            <div class="mode-name">中性网格</div>
+                            <div class="mode-desc">震荡市场</div>
+                        </div>
+                        <div class="mode-card" data-mode="long">
+                            <div class="mode-icon">📈</div>
+                            <div class="mode-name">做多网格</div>
+                            <div class="mode-desc">看涨趋势</div>
+                        </div>
+                        <div class="mode-card" data-mode="short">
+                            <div class="mode-icon">📉</div>
+                            <div class="mode-name">做空网格</div>
+                            <div class="mode-desc">看跌趋势</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 价格区间 -->
+                <div class="section card">
+                    <h3>价格区间</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>下限价格</label>
+                            <input type="number" class="input" id="lowerPrice" placeholder="50000">
+                        </div>
+                        <div class="form-group">
+                            <label>上限价格</label>
+                            <input type="number" class="input" id="upperPrice" placeholder="60000">
+                        </div>
+                    </div>
+                    <div class="price-slider">
+                        <div class="slider-track"></div>
+                        <div class="slider-fill"></div>
+                        <div class="slider-marker" id="currentPriceMarker">
+                            <div class="marker-dot"></div>
+                            <div class="marker-label">当前</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 网格参数 -->
+                <div class="section card">
+                    <h3>网格参数</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>网格数量</label>
+                            <input type="number" class="input" id="gridCount" value="10" min="2" max="50">
+                            <span class="hint">建议: 5-20</span>
+                        </div>
+                        <div class="form-group">
+                            <label>每网格投资 (DUSD)</label>
+                            <input type="number" class="input" id="perGridAmount" value="100">
+                            <span class="hint">总投资: <span id="totalInvestment">1000</span> DUSD</span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>杠杆</label>
+                            <div class="leverage-btns">
+                                <button class="lev-btn active" data-leverage="1">1x</button>
+                                <button class="lev-btn" data-leverage="2">2x</button>
+                                <button class="lev-btn" data-leverage="5">5x</button>
+                                <button class="lev-btn" data-leverage="10">10x</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 高级设置 -->
+                <div class="section card collapsible">
+                    <div class="section-header" id="advancedToggle">
+                        <h3>高级设置</h3>
+                        <svg class="toggle-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M4 6l4 4 4-4"/>
+                        </svg>
+                    </div>
+                    <div class="advanced-content" id="advancedContent">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>止损 (%)</label>
+                                <input type="number" class="input" id="stopLoss" placeholder="可选">
+                            </div>
+                            <div class="form-group">
+                                <label>止盈 (%)</label>
+                                <input type="number" class="input" id="takeProfit" placeholder="可选">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="autoRestart" checked>
+                                    <span>价格回到区间自动重启</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-right">
+                <!-- 网格预览 -->
+                <div class="section card">
+                    <h3>网格预览</h3>
+                    <div class="grid-preview" id="gridPreview">
+                        <canvas id="gridCanvas" width="300" height="400"></canvas>
+                    </div>
+                    <div class="grid-stats">
+                        <div class="stat">
+                            <span class="label">网格间距</span>
+                            <span class="value" id="gridSpacing">--</span>
+                        </div>
+                        <div class="stat">
+                            <span class="label">每网格利润</span>
+                            <span class="value" id="profitPerGrid">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 风险提示 -->
+                <div class="section card risk-card">
+                    <h3>⚠️ 风险提示</h3>
+                    <div class="risk-level">
+                        <span>风险等级:</span>
+                        <span class="badge" id="riskBadge">低</span>
+                    </div>
+                    <ul class="risk-list">
+                        <li>网格交易适合震荡市场</li>
+                        <li>单边行情可能导致亏损</li>
+                        <li>杠杆会放大风险和收益</li>
+                        <li>请确保理解策略原理</li>
+                    </ul>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="action-buttons">
+                    <button class="btn-large btn-primary" id="startGrid" disabled>
+                        启动网格交易
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MetaMask 连接模态框 -->
+    <div class="modal" id="walletModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>连接钱包</h3>
+                <button class="modal-close" onclick="document.getElementById('walletModal').classList.remove('active')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="wallet-options">
+                    <button class="wallet-option" id="connectMetaMask">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23f6851b'/%3E%3Cpath d='M20 10l-8 6 8 4 8-4z' fill='white'/%3E%3C/svg%3E" alt="MetaMask">
+                        <span>MetaMask</span>
+                        <div class="recommended">推荐</div>
+                    </button>
+                    <button class="wallet-option disabled">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%234e529a'/%3E%3C/svg%3E" alt="WalletConnect">
+                        <span>WalletConnect</span>
+                        <div class="soon">即将支持</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="grid.js"></script>
+</body>
+</html>
