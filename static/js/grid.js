@@ -1155,10 +1155,27 @@ async function getJwtToken() {
         console.log('各行内容:');
         lines.forEach((line, i) => console.log(`  行${i+1}: "${line}"`));
 
-        // 使用 ethers.js v6 的 BrowserProvider 和 Signer
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const signature = await signer.signMessage(messageToSign);
+        // 尝试两种签名方式
+        let signature;
+
+        // 方式 1: 使用 ethers.js v6 签名
+        console.log('尝试使用 ethers.js 签名...');
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            signature = await signer.signMessage(messageToSign);
+            console.log('ethers.js 签名成功');
+        } catch (ethersError) {
+            console.error('ethers.js 签名失败:', ethersError);
+
+            // 方式 2: 直接使用 personal_sign
+            console.log('回退到 personal_sign...');
+            signature = await window.ethereum.request({
+                method: 'personal_sign',
+                params: [messageToSign, walletAddress]
+            });
+            console.log('personal_sign 签名成功');
+        }
 
         console.log('=== 签名信息 ===');
         console.log('原始签名:', signature);
@@ -1202,12 +1219,34 @@ async function getJwtToken() {
         console.log('signedData 长度:', signedData.length);
         console.log('signedData 前 50 字符:', signedData.slice(0, 50) + '...');
 
+        // 准备多种签名格式尝试
+        // 有些 API 期望不同的 v 值格式 (27/28 vs 0/1)
+        const sigWithoutPrefix = signature.startsWith('0x') ? signature.slice(2) : signature;
+        const r = sigWithoutPrefix.slice(0, 64);
+        const s = sigWithoutPrefix.slice(64, 128);
+        const v = parseInt(sigWithoutPrefix.slice(128, 130), 16);
+
+        // 计算不同的 v 值
+        const vNormalized = v >= 27 ? v - 27 : v;  // 转换为 0/1
+        const vLegacy = v < 27 ? v + 27 : v;       // 转换为 27/28
+
+        // 重新构建不同格式的签名
+        const sigWithVNormalized = '0x' + r + s + vNormalized.toString(16).padStart(2, '0');
+        const sigWithVLegacy = '0x' + r + s + vLegacy.toString(16).padStart(2, '0');
+
+        console.log('签名 v 值分析:');
+        console.log('  原始 v:', v);
+        console.log('  归一化 v (0/1):', vNormalized);
+        console.log('  传统 v (27/28):', vLegacy);
+
         // 尝试发送请求，如果失败尝试不同的签名格式
         let loginSuccess = false;
         let lastError = null;
         const signatureFormats = [
-            { name: '带 0x 前缀', sig: signature },
-            { name: '不带 0x 前缀', sig: signature.startsWith('0x') ? signature.slice(2) : signature }
+            { name: '原始签名 (带 0x)', sig: signature },
+            { name: '原始签名 (不带 0x)', sig: sigWithoutPrefix },
+            { name: 'v 归一化 (0/1)', sig: sigWithVNormalized },
+            { name: 'v 归一化 (不带 0x)', sig: sigWithVNormalized.slice(2) },
         ];
 
         for (const format of signatureFormats) {
@@ -1258,8 +1297,15 @@ async function getJwtToken() {
             }
         }
 
-        // 所有格式都失败了
+        // 所有格式都失败了，显示详细错误信息
         if (!loginSuccess) {
+            console.error('=== 所有签名格式均失败 ===');
+            console.error('SIWE 消息格式看起来正确，但服务器仍然拒绝');
+            console.error('可能原因：');
+            console.error('1. StandX 服务器端 SIWE 验证有 bug');
+            console.error('2. 需要特殊的签名编码方式');
+            console.error('3. 消息中有不可见字符或编码问题');
+            console.error('建议：联系 StandX 支持或检查官方示例代码');
             throw new Error(`login 失败: ${lastError}`);
         }
 
