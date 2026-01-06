@@ -317,7 +317,9 @@ async function restoreSession() {
 function connectWebSocket() {
     if (!state.wallet.sessionId) return;
 
-    const wsUrl = `ws://${window.location.host}/ws/${state.wallet.sessionId}`;
+    // 根据页面协议自动选择 ws 或 wss
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws/${state.wallet.sessionId}`;
 
     try {
         state.ws = new WebSocket(wsUrl);
