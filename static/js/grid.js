@@ -1037,7 +1037,7 @@ async function getJwtToken() {
     const CHAIN = 'bsc';
 
     try {
-        // 1. 生成 Ed25519 密钥对
+        // 1. 生成 Ed25519 密钥对（用于后续 API 请求签名，不是 SIWE 认证）
         status.textContent = '⏳ 生成密钥...';
         const keyResp = await apiRequest('/api/config/generate-keypair');
         if (!keyResp.success) throw new Error('生成密钥失败');
@@ -1045,14 +1045,18 @@ async function getJwtToken() {
         state.apiConfig.signingKey = keyResp.private_key;
         state.apiConfig.requestId = keyResp.request_id;
 
-        // 2. prepare-signin - 完全按照官方文档
+        // 2. prepare-signin - 严格按照官方文档
+        // 重要：requestId 应该是 UUID，不是 Ed25519 公钥
+        // Ed25519 密钥仅用于后续 API 请求签名
         status.textContent = '⏳ 准备签名...';
+        const siweRequestId = crypto.randomUUID();  // 使用 UUID，与官方示例一致
+
         const prepareResp = await fetch(`${API}/prepare-signin?chain=${CHAIN}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 address: walletAddress,
-                requestId: keyResp.request_id
+                requestId: siweRequestId  // UUID，非 Ed25519 公钥
             })
         });
 
@@ -1079,8 +1083,9 @@ async function getJwtToken() {
         const message = payload.message;
 
         console.log('=== StandX 认证 ===');
-        console.log('地址:', walletAddress);
-        console.log('RequestId:', keyResp.request_id);
+        console.log('钱包地址:', walletAddress);
+        console.log('SIWE RequestId (UUID):', siweRequestId);
+        console.log('Ed25519 RequestId (公钥):', keyResp.request_id);
         console.log('SIWE消息:', message);
 
         // 4. 签名 - 官方: const signature = await wallet.signMessage(payload.message)

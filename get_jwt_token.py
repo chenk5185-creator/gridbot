@@ -67,12 +67,18 @@ def get_jwt_token_with_private_key(private_key: str) -> dict:
     print()
 
     # Step 1: 调用 prepare-signin
+    # 重要：requestId 应该是 UUID，不是钱包地址或 Ed25519 公钥
+    # Ed25519 密钥仅用于后续 API 请求签名，与 SIWE 登录无关
     print("步骤 1: 调用 prepare-signin...")
+    import uuid
+    siwe_request_id = str(uuid.uuid4())  # 使用 UUID，与官方示例一致
+
     prepare_url = f"{API_BASE}/prepare-signin?chain={CHAIN}"
     prepare_data = {
         "address": address,
-        "requestId": address[:20]  # 使用地址前缀作为 requestId
+        "requestId": siwe_request_id  # UUID，非钱包地址
     }
+    print(f"SIWE RequestId (UUID): {siwe_request_id}")
 
     response = requests.post(prepare_url, json=prepare_data)
     print(f"状态码: {response.status_code}")
