@@ -726,18 +726,14 @@ function openApiConfigModal() {
     const modal = document.getElementById('apiConfigModal');
     const jwtInput = document.getElementById('jwtTokenInput');
     const testResult = document.getElementById('apiTestResult');
-    const tokenStatus = document.getElementById('getTokenStatus');
 
     // 恢复已保存的配置
     if (state.apiConfig.jwtToken) {
         jwtInput.value = state.apiConfig.jwtToken;
     }
 
-    // 隐藏测试结果和 token 状态
+    // 隐藏测试结果
     testResult.style.display = 'none';
-    if (tokenStatus) {
-        tokenStatus.style.display = 'none';
-    }
 
     // 更新签名密钥状态
     updateSigningKeyStatus();
@@ -929,11 +925,11 @@ function updateSigningKeyStatus() {
 
     if (state.apiConfig.signingKey && state.apiConfig.requestId) {
         statusEl.innerHTML = `
-            <span class="key-status-ready">🔑 签名密钥已就绪 (Request ID: ${state.apiConfig.requestId.slice(0, 8)}...)</span>
+            <span class="key-status-ready">🔑 签名密钥已就绪</span>
         `;
     } else {
         statusEl.innerHTML = `
-            <span class="key-status-pending">⏳ 点击上方按钮获取 JWT Token 时会自动生成签名密钥</span>
+            <span class="key-status-pending">🔑 保存配置时会自动生成签名密钥</span>
         `;
     }
 }
@@ -964,187 +960,6 @@ async function ensureSigningKey() {
     } catch (error) {
         console.error('生成签名密钥失败:', error);
         return false;
-    }
-}
-
-/**
- * 获取 JWT Token - 严格按照 StandX 官方文档实现
- *
- * 官方文档: https://docs.standx.com/standx-api/perps-auth
- *
- * 官方代码示例:
- *   const signedData = (await prepareResponse.json()).signedData;
- *   const payload = parseJwt(signedData);
- *   const signature = await wallet.signMessage(payload.message);
- *   body: JSON.stringify({ signature, signedData, expiresSeconds })
- */
-async function getJwtToken() {
-    const btn = document.getElementById('getJwtTokenBtn');
-    const status = document.getElementById('getTokenStatus');
-    const tokenInput = document.getElementById('jwtTokenInput');
-
-    if (!isMetaMaskInstalled()) {
-        showToast('请先安装 MetaMask', 'error');
-        return;
-    }
-
-    let walletAddress;
-    try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (!accounts || accounts.length === 0) {
-            showToast('请先连接 MetaMask 钱包', 'warning');
-            return;
-        }
-        walletAddress = accounts[0];
-    } catch (e) {
-        showToast('连接钱包失败: ' + e.message, 'error');
-        return;
-    }
-
-    // 切换到 BSC 网络 (chainId: 56)
-    try {
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        if (chainId !== '0x38') {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: '0x38' }]
-            }).catch(async (e) => {
-                if (e.code === 4902) {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{
-                            chainId: '0x38',
-                            chainName: 'BNB Smart Chain',
-                            nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
-                            rpcUrls: ['https://bsc-dataseed.binance.org/'],
-                            blockExplorerUrls: ['https://bscscan.com/']
-                        }]
-                    });
-                } else throw e;
-            });
-        }
-    } catch (e) {
-        showToast('切换 BSC 网络失败: ' + e.message, 'error');
-        return;
-    }
-
-    btn.classList.add('btn-loading');
-    btn.disabled = true;
-    status.className = 'get-token-status loading';
-    status.style.display = 'block';
-
-    const API = 'https://api.standx.com/v1/offchain';
-    const CHAIN = 'bsc';
-
-    try {
-        // 1. 生成 Ed25519 密钥对（用于后续 API 请求签名，不是 SIWE 认证）
-        status.textContent = '⏳ 生成密钥...';
-        const keyResp = await apiRequest('/api/config/generate-keypair');
-        if (!keyResp.success) throw new Error('生成密钥失败');
-
-        state.apiConfig.signingKey = keyResp.private_key;
-        state.apiConfig.requestId = keyResp.request_id;
-
-        // 2. prepare-signin - 严格按照官方文档
-        // 重要：requestId 应该是 UUID，不是 Ed25519 公钥
-        // Ed25519 密钥仅用于后续 API 请求签名
-        status.textContent = '⏳ 准备签名...';
-        const siweRequestId = crypto.randomUUID();  // 使用 UUID，与官方示例一致
-
-        const prepareResp = await fetch(`${API}/prepare-signin?chain=${CHAIN}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                address: walletAddress,
-                requestId: siweRequestId  // UUID，非 Ed25519 公钥
-            })
-        });
-
-        if (!prepareResp.ok) {
-            const err = await prepareResp.text();
-            throw new Error(`prepare-signin 失败: ${err}`);
-        }
-
-        const prepareData = await prepareResp.json();
-        const signedData = prepareData.signedData;
-        if (!signedData) throw new Error('未获取到 signedData');
-
-        // 3. 解析 JWT - 官方: JSON.parse(Buffer.from(token.split(".")[1], "base64").toString("utf-8"))
-        function parseJwt(token) {
-            const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-            const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
-            const decoded = atob(padded);
-            const bytes = new Uint8Array(decoded.length);
-            for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
-            return JSON.parse(new TextDecoder().decode(bytes));
-        }
-
-        const payload = parseJwt(signedData);
-        const message = payload.message;
-
-        console.log('=== StandX 认证 ===');
-        console.log('钱包地址:', walletAddress);
-        console.log('SIWE RequestId (UUID):', siweRequestId);
-        console.log('Ed25519 RequestId (公钥):', keyResp.request_id);
-        console.log('SIWE消息:', message);
-
-        // 4. 签名 - 官方: const signature = await wallet.signMessage(payload.message)
-        status.textContent = '⏳ 请在钱包中签名...';
-
-        // 使用 ethers.js 签名 (与官方示例一致)
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const signature = await signer.signMessage(message);
-
-        console.log('签名:', signature);
-
-        // 5. login - 官方: body: JSON.stringify({ signature, signedData, expiresSeconds })
-        status.textContent = '⏳ 登录中...';
-
-        const loginResp = await fetch(`${API}/login?chain=${CHAIN}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                signature: signature,
-                signedData: signedData,
-                expiresSeconds: 604800
-            })
-        });
-
-        const loginText = await loginResp.text();
-        console.log('Login响应:', loginResp.status, loginText);
-
-        if (loginResp.ok) {
-            const loginData = JSON.parse(loginText);
-            if (loginData.token) {
-                tokenInput.value = loginData.token;
-                status.className = 'get-token-status success';
-                status.innerHTML = '✅ JWT Token 获取成功！';
-                updateSigningKeyStatus();
-                showToast('JWT Token 获取成功！', 'success');
-                return;
-            }
-        }
-
-        // 自动获取失败，提示用户手动获取
-        status.className = 'get-token-status error';
-        status.innerHTML = `
-            ❌ 自动获取失败 (StandX API 问题)<br>
-            <small>请从 <a href="https://app.standx.com" target="_blank">StandX 网站</a> 手动复制 JWT Token</small><br>
-            <small>签名密钥已生成，可直接粘贴 Token 后保存配置</small>
-        `;
-        // 不抛出错误，让用户可以手动输入
-        console.error('自动获取 JWT Token 失败:', loginText);
-        console.log('签名密钥已生成，用户可手动输入 JWT Token');
-
-    } catch (error) {
-        console.error('错误:', error);
-        status.className = 'get-token-status error';
-        status.textContent = '❌ ' + error.message;
-        showToast(error.message, 'error');
-    } finally {
-        btn.classList.remove('btn-loading');
-        btn.disabled = false;
     }
 }
 

@@ -304,35 +304,53 @@
             </div>
             <div class="modal-body">
                 <div class="api-config-info">
-                    <p>配置 StandX API 后，您可以进行真实交易。</p>
+                    <p>配置 JWT Token 后即可进行真实交易。请按照以下步骤获取 Token。</p>
                 </div>
 
-                <!-- 获取 Token 区域 -->
-                <div class="get-token-section">
-                    <div class="get-token-header">
-                        <span>🔑 第一步：获取 JWT Token 和签名密钥</span>
+                <!-- 获取 Token 指引 -->
+                <div class="token-guide">
+                    <div class="guide-header">📋 如何获取 JWT Token</div>
+                    <ol class="guide-steps">
+                        <li>
+                            <span class="step-num">1</span>
+                            <span class="step-text">访问 <a href="https://app.standx.com" target="_blank">app.standx.com</a> 并连接你的钱包</span>
+                        </li>
+                        <li>
+                            <span class="step-num">2</span>
+                            <span class="step-text">按 <kbd>F12</kbd> 打开浏览器开发者工具</span>
+                        </li>
+                        <li>
+                            <span class="step-num">3</span>
+                            <span class="step-text">切换到 <strong>Network</strong>（网络）标签</span>
+                        </li>
+                        <li>
+                            <span class="step-num">4</span>
+                            <span class="step-text">刷新页面，在请求列表中搜索 <code>login</code></span>
+                        </li>
+                        <li>
+                            <span class="step-num">5</span>
+                            <span class="step-text">点击该请求，在 Response 中复制 <code>token</code> 字段的值</span>
+                        </li>
+                    </ol>
+                    <div class="guide-tip">
+                        💡 Token 是一长串以 <code>eyJ</code> 开头的字符串
                     </div>
-                    <p class="get-token-desc">点击下方按钮，使用 MetaMask 签名后自动获取 JWT Token 和生成签名密钥。</p>
-                    <button class="btn-primary" id="getJwtTokenBtn" style="width: 100%;" onclick="getJwtToken()">
-                        🦊 使用 MetaMask 获取 JWT Token
-                    </button>
-                    <div class="get-token-status" id="getTokenStatus" style="display: none;"></div>
                 </div>
 
                 <!-- Token 输入区域 -->
                 <div class="form-group" style="margin-top: 20px;">
-                    <label>🔐 第二步：确认 JWT Token</label>
-                    <textarea class="input textarea" id="jwtTokenInput" placeholder="Token 将自动填入..."></textarea>
-                    <span class="hint">JWT Token 有效期为 7 天，过期后需要重新获取</span>
+                    <label>🔐 粘贴 JWT Token</label>
+                    <textarea class="input textarea" id="jwtTokenInput" placeholder="粘贴从 StandX 复制的 JWT Token..."></textarea>
+                    <span class="hint">Token 有效期通常为 7 天，过期后需要重新获取</span>
                 </div>
 
                 <!-- 签名密钥状态 -->
                 <div class="signing-key-status" id="signingKeyStatus">
-                    <span class="key-status-pending">⏳ 点击上方按钮获取 JWT Token 时会自动生成签名密钥</span>
+                    <span class="key-status-pending">🔑 保存配置时会自动生成 Ed25519 签名密钥</span>
                 </div>
 
                 <div class="api-config-options">
-                    <p class="live-mode-notice">⚡ 配置后将启用真实交易</p>
+                    <p class="live-mode-notice">⚡ 配置成功后将启用真实交易</p>
                 </div>
 
                 <div class="api-test-result" id="apiTestResult" style="display: none;">
@@ -353,8 +371,6 @@
     <!-- Toast 通知容器 -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- ethers.js v6 - 用于 SIWE 签名（官方文档推荐） -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="/static/js/grid.js"></script>
 </body>
 </html>
