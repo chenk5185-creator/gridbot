@@ -963,6 +963,170 @@ async function ensureSigningKey() {
     }
 }
 
+/**
+ * 获取 JWT Token - 使用 MetaMask 签名
+ *
+ * 关键：requestId 必须是 Ed25519 公钥（base58），这样 StandX 才能验证后续的 API 请求签名
+ */
+async function getJwtToken() {
+    const btn = document.getElementById('getJwtTokenBtn');
+    const status = document.getElementById('getTokenStatus');
+    const tokenInput = document.getElementById('jwtTokenInput');
+
+    // 检查 MetaMask
+    if (!isMetaMaskInstalled()) {
+        showToast('请先安装 MetaMask', 'error');
+        return;
+    }
+
+    // 获取钱包地址
+    let walletAddress;
+    try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (!accounts || accounts.length === 0) {
+            showToast('请先连接 MetaMask', 'warning');
+            return;
+        }
+        walletAddress = accounts[0];
+    } catch (e) {
+        showToast('连接钱包失败: ' + e.message, 'error');
+        return;
+    }
+
+    // 切换到 BSC 网络
+    try {
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId !== '0x38') {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0x38' }]
+            }).catch(async (e) => {
+                if (e.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x38',
+                            chainName: 'BNB Smart Chain',
+                            nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+                            rpcUrls: ['https://bsc-dataseed.binance.org/'],
+                            blockExplorerUrls: ['https://bscscan.com/']
+                        }]
+                    });
+                } else throw e;
+            });
+        }
+    } catch (e) {
+        showToast('切换 BSC 网络失败: ' + e.message, 'error');
+        return;
+    }
+
+    // 开始获取流程
+    btn.classList.add('btn-loading');
+    btn.disabled = true;
+    status.style.display = 'block';
+    status.className = 'get-token-status loading';
+
+    const API = 'https://api.standx.com/v1/offchain';
+    const CHAIN = 'bsc';
+
+    try {
+        // 1. 生成 Ed25519 密钥对
+        status.textContent = '⏳ 生成签名密钥...';
+        const keyResp = await apiRequest('/api/config/generate-keypair');
+        if (!keyResp.success) throw new Error('生成密钥失败');
+
+        // 保存密钥到状态
+        state.apiConfig.signingKey = keyResp.private_key;
+        state.apiConfig.requestId = keyResp.request_id;
+
+        console.log('Ed25519 密钥对已生成');
+        console.log('公钥 (requestId):', keyResp.request_id);
+
+        // 2. 调用 prepare-signin
+        // 重要：requestId 必须是 Ed25519 公钥，这样 StandX 才能验证后续签名
+        status.textContent = '⏳ 准备登录...';
+        const prepareResp = await fetch(`${API}/prepare-signin?chain=${CHAIN}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                address: walletAddress,
+                requestId: keyResp.request_id  // Ed25519 公钥 (base58)
+            })
+        });
+
+        if (!prepareResp.ok) {
+            const err = await prepareResp.text();
+            throw new Error(`prepare-signin 失败: ${err}`);
+        }
+
+        const { signedData } = await prepareResp.json();
+        if (!signedData) throw new Error('未获取到 signedData');
+
+        // 3. 解析 JWT 获取 SIWE 消息
+        function parseJwt(token) {
+            const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+            const decoded = atob(padded);
+            const bytes = new Uint8Array(decoded.length);
+            for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
+            return JSON.parse(new TextDecoder().decode(bytes));
+        }
+
+        const payload = parseJwt(signedData);
+        const message = payload.message;
+
+        console.log('SIWE 消息:', message);
+
+        // 4. 使用 ethers.js 签名 SIWE 消息
+        status.textContent = '⏳ 请在钱包中签名...';
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const signature = await signer.signMessage(message);
+
+        console.log('签名完成:', signature.slice(0, 20) + '...');
+
+        // 5. 调用 login 获取 JWT Token
+        status.textContent = '⏳ 登录中...';
+        const loginResp = await fetch(`${API}/login?chain=${CHAIN}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                signature: signature,
+                signedData: signedData,
+                expiresSeconds: 604800  // 7 天
+            })
+        });
+
+        const loginText = await loginResp.text();
+        console.log('Login 响应:', loginResp.status, loginText);
+
+        if (loginResp.ok) {
+            const loginData = JSON.parse(loginText);
+            if (loginData.token) {
+                // 成功！
+                tokenInput.value = loginData.token;
+                status.className = 'get-token-status success';
+                status.innerHTML = '✅ 获取成功！签名密钥已注册，可以下单';
+                updateSigningKeyStatus();
+                showToast('JWT Token 获取成功！', 'success');
+                return;
+            }
+        }
+
+        // 登录失败
+        throw new Error('登录失败: ' + loginText);
+
+    } catch (error) {
+        console.error('获取 JWT Token 失败:', error);
+        status.className = 'get-token-status error';
+        status.innerHTML = `❌ ${error.message}<br><small>签名密钥已生成，可尝试手动输入 Token</small>`;
+        showToast(error.message, 'error');
+    } finally {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+    }
+}
+
 // ========== 事件绑定 ==========
 
 document.addEventListener('DOMContentLoaded', () => {
