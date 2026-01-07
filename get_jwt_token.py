@@ -66,12 +66,27 @@ def get_jwt_token_with_private_key(private_key: str) -> dict:
     print(f"链: {CHAIN}")
     print()
 
-    # Step 1: 调用 prepare-signin
-    print("步骤 1: 调用 prepare-signin...")
+    # Step 1: 生成 Ed25519 密钥对并调用 prepare-signin
+    # 重要：requestId 必须是 Ed25519 公钥（base58），这样 StandX 才能验证后续 API 请求签名
+    print("步骤 1: 生成 Ed25519 密钥对...")
+    try:
+        from nacl.signing import SigningKey
+        import base58
+
+        signing_key = SigningKey.generate()
+        ed25519_private_key = base64.b64encode(signing_key.encode()).decode()
+        ed25519_public_key = base58.b58encode(signing_key.verify_key.encode()).decode()
+        print(f"Ed25519 公钥 (requestId): {ed25519_public_key}")
+    except ImportError:
+        print("错误: 请安装 pynacl 和 base58: pip install pynacl base58")
+        return None
+
+    print()
+    print("步骤 2: 调用 prepare-signin...")
     prepare_url = f"{API_BASE}/prepare-signin?chain={CHAIN}"
     prepare_data = {
         "address": address,
-        "requestId": address[:20]  # 使用地址前缀作为 requestId
+        "requestId": ed25519_public_key  # Ed25519 公钥，用于后续 API 签名验证
     }
 
     response = requests.post(prepare_url, json=prepare_data)
@@ -89,9 +104,9 @@ def get_jwt_token_with_private_key(private_key: str) -> dict:
         print("错误: 未获取到 signedData")
         return None
 
-    # Step 2: 解析 JWT Token，获取 SIWE 消息
+    # Step 3: 解析 JWT Token，获取 SIWE 消息
     print()
-    print("步骤 2: 解析 JWT 获取 SIWE 消息...")
+    print("步骤 3: 解析 JWT 获取 SIWE 消息...")
 
     try:
         payload = parse_jwt(signed_data)
@@ -108,9 +123,9 @@ def get_jwt_token_with_private_key(private_key: str) -> dict:
         print(f"JWT 解析错误: {e}")
         return None
 
-    # Step 3: 签名 SIWE 消息（不是整个 JWT Token！）
+    # Step 4: 签名 SIWE 消息（不是整个 JWT Token！）
     print()
-    print("步骤 3: 签名 SIWE 消息...")
+    print("步骤 4: 签名 SIWE 消息...")
 
     # 重要：签名的是 payload.message (SIWE 消息)，而不是整个 signedData (JWT Token)
     message = encode_defunct(text=siwe_message)
@@ -121,9 +136,9 @@ def get_jwt_token_with_private_key(private_key: str) -> dict:
     print(f"签名: {signature[:50]}...")
     print(f"签名长度: {len(signature)}")
 
-    # Step 4: 调用 login 获取 JWT Token
+    # Step 5: 调用 login 获取 JWT Token
     print()
-    print("步骤 4: 调用 login 获取 JWT Token...")
+    print("步骤 5: 调用 login 获取 JWT Token...")
     login_url = f"{API_BASE}/login?chain={CHAIN}"
     login_data = {
         "signature": signature,

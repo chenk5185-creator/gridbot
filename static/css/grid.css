@@ -1292,3 +1292,236 @@ select.input {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
 }
+
+/* ========== Token 获取指引样式 ========== */
+.token-guide {
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.guide-header {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.guide-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.guide-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.guide-steps li:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.step-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.step-text {
+    flex: 1;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.step-text a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.step-text a:hover {
+    text-decoration: underline;
+}
+
+.step-text kbd {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+}
+
+.step-text code {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 4px;
+    color: var(--primary);
+}
+
+.step-text strong {
+    color: var(--text-primary);
+}
+
+.guide-tip {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: var(--border-radius);
+    font-size: 0.85rem;
+    color: var(--success);
+}
+
+.guide-tip code {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+}
+
+/* ========== 获取 Token 区域样式 ========== */
+.get-token-section {
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+}
+
+.get-token-header {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.get-token-desc {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+}
+
+.btn-full {
+    width: 100%;
+}
+
+.get-token-status {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+}
+
+.get-token-status.loading {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary);
+}
+
+.get-token-status.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.get-token-status.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+/* 分隔线 */
+.divider-or {
+    display: flex;
+    align-items: center;
+    margin: var(--spacing-lg) 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.divider-or::before,
+.divider-or::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+}
+
+.divider-or span {
+    padding: 0 var(--spacing-md);
+}
+
+/* 手动获取指引（折叠） */
+.manual-guide {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+}
+
+.manual-guide summary {
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    user-select: none;
+}
+
+.manual-guide summary:hover {
+    color: var(--text-primary);
+}
+
+.manual-guide[open] summary {
+    margin-bottom: var(--spacing-md);
+}
+
+.manual-guide .guide-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.manual-guide .guide-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.manual-guide .step-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-radius: 50%;
+    font-size: 0.7rem;
+}
+
+.manual-guide .guide-tip {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: var(--warning);
+}
