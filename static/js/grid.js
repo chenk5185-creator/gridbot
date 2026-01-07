@@ -1054,17 +1054,27 @@ async function getJwtToken() {
             })
         });
 
+        const prepareText = await prepareResp.text();
+        console.log('=== prepare-signin 响应 ===');
+        console.log('状态码:', prepareResp.status);
+        console.log('响应体:', prepareText);
+
         if (!prepareResp.ok) {
-            const err = await prepareResp.text();
-            throw new Error(`prepare-signin 失败: ${err}`);
+            throw new Error(`prepare-signin 失败: ${prepareText}`);
         }
 
-        const { signedData } = await prepareResp.json();
+        const prepareData = JSON.parse(prepareText);
+        const { signedData } = prepareData;
         if (!signedData) throw new Error('未获取到 signedData');
+
+        console.log('signedData (JWT):', signedData);
 
         // 3. 解析 JWT 获取 SIWE 消息
         function parseJwt(token) {
-            const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            const parts = token.split('.');
+            console.log('JWT 部分数:', parts.length);
+
+            const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
             const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
             const decoded = atob(padded);
             const bytes = new Uint8Array(decoded.length);
@@ -1073,32 +1083,60 @@ async function getJwtToken() {
         }
 
         const payload = parseJwt(signedData);
+        console.log('=== JWT Payload ===');
+        console.log('完整 payload:', JSON.stringify(payload, null, 2));
+
         const message = payload.message;
+        if (!message) {
+            throw new Error('JWT payload 中没有 message 字段');
+        }
 
-        console.log('SIWE 消息:', message);
+        console.log('=== SIWE 消息 ===');
+        console.log('消息:', message);
 
-        // 4. 使用 ethers.js 签名 SIWE 消息
+        // 4. 直接使用 MetaMask personal_sign 签名 SIWE 消息
+        // 不使用 ethers.js，避免任何库差异
         status.textContent = '⏳ 请在钱包中签名...';
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const signature = await signer.signMessage(message);
 
-        console.log('签名完成:', signature.slice(0, 20) + '...');
+        // 详细日志，帮助调试
+        console.log('=== SIWE 签名调试 ===');
+        console.log('消息长度:', message.length);
+        console.log('消息内容:\n', message);
+        console.log('消息 hex:', Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join(' '));
+
+        // 使用 personal_sign 直接签名
+        const signature = await window.ethereum.request({
+            method: 'personal_sign',
+            params: [message, walletAddress]
+        });
+
+        console.log('签名完成:', signature);
+        console.log('签名长度:', signature.length);
 
         // 5. 调用 login 获取 JWT Token
         status.textContent = '⏳ 登录中...';
+
+        // 日志：发送到 login 的数据
+        const loginBody = {
+            signature: signature,
+            signedData: signedData,
+            expiresSeconds: 604800  // 7 天
+        };
+        console.log('=== Login 请求调试 ===');
+        console.log('Login URL:', `${API}/login?chain=${CHAIN}`);
+        console.log('请求体:', JSON.stringify(loginBody, null, 2));
+
         const loginResp = await fetch(`${API}/login?chain=${CHAIN}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                signature: signature,
-                signedData: signedData,
-                expiresSeconds: 604800  // 7 天
-            })
+            body: JSON.stringify(loginBody)
         });
 
         const loginText = await loginResp.text();
-        console.log('Login 响应:', loginResp.status, loginText);
+        console.log('=== Login 响应 ===');
+        console.log('状态码:', loginResp.status);
+        console.log('响应头:', Object.fromEntries(loginResp.headers.entries()));
+        console.log('响应体:', loginText);
 
         if (loginResp.ok) {
             const loginData = JSON.parse(loginText);
